@@ -38,42 +38,54 @@ const VisitorSettings = () => {
   });
 
   useEffect(() => {
-    // Check for user's dark mode preference
-    const userPrefersDark =
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setIsDarkMode(userPrefersDark);
+    const fetchVisitorSettings = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
 
-    // Simulate fetching visitor settings data
-    const timer = setTimeout(() => {
-      setFormData({
-        profile: {
-          fullName: "John Doe",
-          email: "john@visitorcompany.com",
-          phone: "+1 (555) 987-6543",
-          company: "Visitor Company Inc.",
-          purpose: "Business Meeting",
-          profileImage: "https://i.pravatar.cc/100?img=4",
-          timeZone: "UTC-5",
-        },
-        notifications: {
-          emailAlerts: true,
-          smsAlerts: true,
-          pushNotifications: false,
-          upcomingVisits: true,
-          checkInReminders: true,
-        },
-        appearance: {
-          theme: "light",
-          compactMode: false,
-          dateFormat: "MM/DD/YYYY",
-          timeFormat: "12h",
-        },
-      });
-      setLoading(false);
-    }, 1000);
+        // Fetch user profile data
+        const response = await fetch("https://phawaazvms.onrender.com/api/auth/me", {
+          method: "GET",
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          mode: 'cors',
+        });
 
-    return () => clearTimeout(timer);
+        if (!response.ok) {
+          throw new Error("Failed to fetch visitor settings");
+        }
+
+        const userData = await response.json();
+        
+        // Update form data with fetched user data
+        setFormData(prev => ({
+          ...prev,
+          profile: {
+            fullName: userData.data?.firstName && userData.data?.lastName 
+              ? `${userData.data.firstName} ${userData.data.lastName}`
+              : localStorage.getItem("user_full_name") || "",
+            email: userData.data?.email || "",
+            phone: userData.data?.phone || "",
+            company: userData.data?.company || "",
+            purpose: userData.data?.purpose || "",
+            profileImage: userData.data?.photo || localStorage.getItem("user_photo") || "",
+            timeZone: userData.data?.timeZone || "UTC+0",
+          }
+        }));
+
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching visitor settings:", error);
+        toast.error("Failed to load visitor settings");
+        setLoading(false);
+      }
+    };
+
+    fetchVisitorSettings();
   }, []);
 
   const handleInputChange = (section, field, value) => {
@@ -96,42 +108,136 @@ const VisitorSettings = () => {
     });
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        profile: {
-          ...prev.profile,
-          profileImage: URL.createObjectURL(file),
-        },
-      }));
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
+
+        const formData = new FormData();
+        formData.append("photo", file);
+
+        const response = await fetch("https://phawaazvms.onrender.com/api/auth/upload-photo", {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData,
+          mode: 'cors',
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to upload photo");
+        }
+
+        const data = await response.json();
+        
+        setFormData(prev => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            profileImage: data.data.photo
+          }
+        }));
+
+        localStorage.setItem("user_photo", data.data.photo);
+        toast.success("Profile photo updated successfully");
+      } catch (error) {
+        console.error("Error uploading photo:", error);
+        toast.error("Failed to upload photo");
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSaveStatus("saving");
 
-    // Simulate API call to save settings
-    setTimeout(() => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      // Update profile data
+      const response = await fetch("https://phawaazvms.onrender.com/api/auth/update-profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          firstName: formData.profile.fullName.split(" ")[0],
+          lastName: formData.profile.fullName.split(" ").slice(1).join(" "),
+          email: formData.profile.email,
+          phone: formData.profile.phone,
+          company: formData.profile.company,
+          purpose: formData.profile.purpose,
+          timeZone: formData.profile.timeZone
+        }),
+        mode: "cors"
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      // Update notifications settings
+      await fetch("https://phawaazvms.onrender.com/api/auth/update-notifications", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(formData.notifications),
+        mode: "cors"
+      });
+
+      // Update appearance settings
+      localStorage.setItem("theme", formData.appearance.theme);
+      localStorage.setItem("dateFormat", formData.appearance.dateFormat);
+      localStorage.setItem("timeFormat", formData.appearance.timeFormat);
+
       setSaveStatus("saved");
-      toast.success("Visitor settings saved successfully");
+      toast.success("Settings saved successfully");
+
+      // Update localStorage with new name
+      localStorage.setItem("user_full_name", formData.profile.fullName);
 
       // Reset the status after 3 seconds
       setTimeout(() => {
         setSaveStatus(null);
       }, 3000);
-    }, 1500);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+      setSaveStatus("error");
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4 bg-gray-50 dark:bg-gray-900">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-600 dark:text-gray-300">
-          Loading visitor settings...
-        </p>
+      <div className="flex flex-col items-center justify-center h-full space-y-6 bg-gray-50 dark:bg-gray-900">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }} />
+          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-pulse" style={{ animationDuration: '2s' }} />
+        </div>
+        <div className="flex flex-col items-center space-y-2">
+          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium animate-bounce">
+            Loading your settings...
+          </p>
+          <div className="flex space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+          </div>
+        </div>
       </div>
     );
   }

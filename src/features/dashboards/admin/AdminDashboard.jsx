@@ -82,77 +82,122 @@ const AdminDashboard = () => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    setAdmin({
-      fullName: "Admin User",
-      role: "Super Admin",
-      avatarUrl: "https://i.pravatar.cc/100?img=1",
-    });
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.log("No token found, redirecting to login");
+          navigate("/login");
+          return;
+        }
 
-    // Simulate fetching dashboard data
-    const timer = setTimeout(() => {
-      // Simulate visitor stats
-      setVisitorStats({
-        todayTotal: 24,
-        checkedIn: 8,
-        pending: 12,
-        completed: 4,
-      });
+        const response = await fetch("https://phawaazvms.onrender.com/api/auth/me", {
+          method: "GET",
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          mode: 'cors',
+        });
 
-      // Simulate recent visitors
-      setRecentVisitors([
-        {
-          id: "v1",
-          name: "John Doe",
-          purpose: "Interview",
-          host: "HR Department",
-          time: "10:30 AM",
-          status: "checked-in",
-          checkInTime: "10:28 AM",
-        },
-        {
-          id: "v2",
-          name: "Jane Smith",
-          purpose: "Meeting",
-          host: "Marketing Team",
-          time: "11:00 AM",
-          status: "pending",
-        },
-        {
-          id: "v3",
-          name: "Robert Johnson",
-          purpose: "Delivery",
-          host: "Receiving",
-          time: "09:15 AM",
-          status: "completed",
-          checkInTime: "09:10 AM",
-          checkOutTime: "09:45 AM",
-        },
-        {
-          id: "v4",
-          name: "Emily Davis",
-          purpose: "Client Meeting",
-          host: "Sales Team",
-          time: "02:00 PM",
-          status: "pending",
-        },
-        {
-          id: "v5",
-          name: "Michael Wilson",
-          purpose: "Job Interview",
-          host: "Engineering",
-          time: "10:00 AM",
-          status: "checked-in",
-          checkInTime: "09:55 AM",
-        },
-      ]);
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
 
-      setUnreadNotifications(3);
-      setLoading(false);
-    }, 1500);
+        const userData = await response.json();
+        console.log("Fetched admin data:", userData);
 
-    return () => {
-      clearTimeout(timer);
+        // Update admin state with the fetched data
+        const adminInfo = {
+          fullName: userData.data?.firstName && userData.data?.lastName 
+            ? `${userData.data.firstName} ${userData.data.lastName}`
+            : localStorage.getItem("user_full_name") || "Admin User",
+          role: userData.data?.role || localStorage.getItem("user_role") || "Admin",
+          avatarUrl: userData.data?.photo || localStorage.getItem("user_photo") || "https://i.pravatar.cc/100?img=1",
+        };
+        console.log("Setting admin state:", adminInfo);
+        setAdmin(adminInfo);
+
+        // Update localStorage with fresh data
+        localStorage.setItem("user_full_name", adminInfo.fullName);
+        localStorage.setItem("user_role", adminInfo.role);
+        if (userData.data?.photo) {
+          localStorage.setItem("user_photo", userData.data.photo);
+        }
+
+        // Simulate fetching dashboard data
+        const timer = setTimeout(() => {
+          // Simulate visitor stats
+          setVisitorStats({
+            todayTotal: 24,
+            checkedIn: 8,
+            pending: 12,
+            completed: 4,
+          });
+
+          // Simulate recent visitors
+          setRecentVisitors([
+            {
+              id: "v1",
+              name: "John Doe",
+              purpose: "Interview",
+              host: "HR Department",
+              time: "10:30 AM",
+              status: "checked-in",
+              checkInTime: "10:28 AM",
+            },
+            {
+              id: "v2",
+              name: "Jane Smith",
+              purpose: "Meeting",
+              host: "Marketing Team",
+              time: "11:00 AM",
+              status: "pending",
+            },
+            {
+              id: "v3",
+              name: "Robert Johnson",
+              purpose: "Delivery",
+              host: "Receiving",
+              time: "09:15 AM",
+              status: "completed",
+              checkInTime: "09:10 AM",
+              checkOutTime: "09:45 AM",
+            },
+            {
+              id: "v4",
+              name: "Emily Davis",
+              purpose: "Client Meeting",
+              host: "Sales Team",
+              time: "02:00 PM",
+              status: "pending",
+            },
+            {
+              id: "v5",
+              name: "Michael Wilson",
+              purpose: "Job Interview",
+              host: "Engineering",
+              time: "10:00 AM",
+              status: "checked-in",
+              checkInTime: "09:55 AM",
+            },
+          ]);
+
+          setUnreadNotifications(3);
+          setLoading(false);
+        }, 1500);
+
+        return () => {
+          clearTimeout(timer);
+        };
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        toast.error("Failed to load user data");
+        navigate("/login");
+      }
     };
+
+    fetchUserData();
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
@@ -162,6 +207,7 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   if (loading || !admin) {
+    console.log("Loading state:", loading, "Admin state:", admin);
     return <LoadingSpinner message="Loading your dashboard..." />;
   }
 

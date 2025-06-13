@@ -18,6 +18,7 @@ import Settings from "./components/admins/AdminSettings";
 import { ThemeProvider } from "./hooks/ThemeContext";
 import VisitorSettings from "./components/visitors/VisitorSettings";
 import UserManagement from "./components/admins/UserManagement";
+import VisitFormPage from "./pages/VisitFormPage";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               <Route path="visit-summary" element={<VisitSummary />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="settings" element={<VisitorSettings />} />
+              <Route path="schedule-visit" element={<VisitFormPage />} />
             </Route>
 
             {/* Admin */}

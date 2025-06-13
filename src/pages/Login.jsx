@@ -43,48 +43,87 @@ const Login = () => {
     setError("");
 
     try {
-      const body = new URLSearchParams();
-      body.append("grant_type", "password");
-      body.append("username", email);
-      body.append("password", password);
-      body.append("client_id", "string");
-      body.append("client_secret", "string");
-
-      const response = await fetch("https://taskapp-self.vercel.app/token", {
+      const response = await fetch("https://phawaazvms.onrender.com/api/auth/login", {
         method: "POST",
         headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: body.toString(),
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password
+        }),
+        mode: 'cors',
       });
 
       if (!response.ok) {
-        throw new Error("Login failed");
+        const errorData = await response.json();
+        console.log("Login error:", errorData);
+        const errorMessage = errorData.message || errorData.error || "Failed to login. Please try again.";
+        setError(errorMessage);
+        toast.error(errorMessage);
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      console.log("Login successful:", data);
+      const responseData = await response.json();
+      console.log("Login successful:", responseData);
 
-      localStorage.setItem("access_token", data.access_token);
-      const fullName = data.full_name || "User";
-      localStorage.setItem("full_name", fullName);
+      if (responseData.success && responseData.data) {
+        const { token, user } = responseData.data;
+        console.log("Token:", token);
+        console.log("User data:", user);
+        
+        // Store the token
+        if (token) {
+          localStorage.setItem("access_token", token);
+          
+          // Store user data
+          if (user) {
+            console.log("Storing user data:", user);
+            const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+            const role = user.role || "visitor";
+            
+            localStorage.setItem("user_full_name", fullName);
+            localStorage.setItem("user_role", role);
+            localStorage.setItem("user_id", user._id);
+            localStorage.setItem("user_email", user.email);
+            if (user.phone) {
+              localStorage.setItem("user_phone", user.phone);
+            }
+            if (user.photo) {
+              localStorage.setItem("user_photo", user.photo);
+            }
 
-      let userRole = data.role;
-      if (!userRole) {
-        if (email.includes("admin")) {
-          userRole = "admin";
+            toast.success("Login successful!");
+            
+            // Redirect based on role
+            console.log("User role:", role);
+            if (role === "admin") {
+              console.log("Redirecting to admin dashboard");
+              navigate("/admin");
+            } else {
+              console.log("Redirecting to visitor dashboard");
+              navigate("/visitor");
+            }
+          } else {
+            console.error("No user data in response");
+            setError("No user data received");
+            toast.error("Login failed. Please try again.");
+          }
         } else {
-          userRole = "visitor";
+          console.error("No token in response");
+          setError("No authentication token received");
+          toast.error("Login failed. Please try again.");
         }
+      } else {
+        console.error("Invalid response structure:", responseData);
+        setError("Invalid response from server");
+        toast.error("Login failed. Please try again.");
       }
-
-      localStorage.setItem("user_role", userRole);
-      toast.success("Login successful!");
-      redirectBasedOnRole(userRole);
     } catch (err) {
       console.error(err);
-      setError("Failed to login. Please try again.");
+      setError("Network error. Please check your internet connection and try again.");
       toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);

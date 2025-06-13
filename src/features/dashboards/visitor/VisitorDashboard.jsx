@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -10,6 +10,7 @@ import {
   Calendar,
   Settings,
   QrCode,
+  PlusCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import DashboardLayout from "../../../layout/DashboardLayout";
@@ -26,6 +27,11 @@ const navItems = [
     to: "",
     label: "Dashboard",
     icon: <Home size={20} />,
+  },
+  {
+    to: "schedule-visit",
+    label: "Schedule Visit",
+    icon: <PlusCircle size={20} />,
   },
   {
     to: "visit-summary",
@@ -68,37 +74,174 @@ const VisitorDashboard = () => {
     completed: 0,
     total: 0,
   });
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Add function to fetch visitor summary
+  const fetchVisitorSummary = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/summary", {
+        method: "GET",
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch visitor summary");
+      }
+
+      const data = await response.json();
+      console.log("Fetched visitor summary:", data);
+
+      // Update stats with the summary data
+      setVisitStats({
+         upcoming: data.data.upcomingVisits || 0,
+        completed: data.data.completedVisits || 0,
+        total: data.data.totalVisits || 0,
+  });
+
+      // Update top visits with upcoming visits list
+      setTopVisits(data.data.upcomingVisitsList?.slice(0, 3) || []);
+
+    } catch (error) {
+      console.error("Error fetching visitor summary:", error);
+      // Set default values if fetch fails
+      setVisitStats({
+        upcoming: 0,
+        completed: 0,
+        total: 0,
+      });
+      setTopVisits([]);
+      toast.error("Failed to load visitor summary");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setLoading(contextLoading);
-    if (!contextLoading && profile) {
-      const visits = getTopUpcomingVisits();
-      setTopVisits(visits);
+    const fetchUserData = async () => {
+      // Only fetch data on initial load
+      if (!isInitialLoad) return;
 
-      // Set stats based on visits data
-      setVisitStats({
-        upcoming: visits.length,
-        completed: 8, // Mock data, would come from API in real app
-        total: visits.length + 8,
+      try {
+        setIsLoading(true);
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.log("No token found, redirecting to login");
+          navigate("/login");
+          return;
+        }
+
+        // Check if we already have user data in localStorage
+        const cachedUserData = {
+          fullName: localStorage.getItem("user_full_name"),
+          role: localStorage.getItem("user_role"),
+          avatarUrl: localStorage.getItem("user_photo")
+        };
+
+        // If we have cached data, use it immediately
+        if (cachedUserData.fullName) {
+          setUser(cachedUserData);
+        }
+
+        // Then fetch fresh data in the background
+        const response = await fetch("https://phawaazvms.onrender.com/api/auth/me", {
+          method: "GET",
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          mode: 'cors',
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch user data");
+        }
+
+        const userData = await response.json();
+        
+        // Update user state with the fetched data
+        const userInfo = {
+          fullName: userData.data?.firstName && userData.data?.lastName 
+            ? `${userData.data.firstName} ${userData.data.lastName}`
+            : cachedUserData.fullName || "Visitor",
+          role: userData.data?.role || cachedUserData.role || "Visitor",
+          avatarUrl: userData.data?.photo || cachedUserData.avatarUrl || "https://i.pravatar.cc/100?img=2",
+        };
+
+        setUser(userInfo);
+
+        // Update localStorage with fresh data
+        localStorage.setItem("user_full_name", userInfo.fullName);
+        localStorage.setItem("user_role", userInfo.role);
+        if (userData.data?.photo) {
+          localStorage.setItem("user_photo", userData.data.photo);
+        }
+
+        // Fetch visitor summary after user data is loaded
+        await fetchVisitorSummary();
+        setIsInitialLoad(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        // Only show error toast if we don't have cached data
+        if (!localStorage.getItem("user_full_name")) {
+          toast.error("Failed to load user data");
+          navigate("/login");
+        }
+        setIsLoading(false);
+        setIsInitialLoad(false);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate, isInitialLoad]);
+
+  // Memoize the handleVisitSubmit function to prevent unnecessary re-renders
+  const handleVisitSubmit = useCallback(async (newVisit) => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("https://phawaazvms.onrender.com/api/visits", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(newVisit),
+        mode: "cors"
       });
-    }
-  }, [contextLoading, getTopUpcomingVisits, profile]);
 
-  const handleVisitSubmit = (newVisit) => {
-    const success = addVisit(newVisit);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create visit");
+      }
 
-    if (success) {
-      // Update the top visits display
-      setTopVisits(getTopUpcomingVisits());
-
-      // Show success toast
-      toast.success("Visit added successfully!");
-
+      // Refresh visitor summary after successful submission
+      await fetchVisitorSummary();
+      toast.success("Visit scheduled successfully!");
       return true;
+    } catch (error) {
+      console.error("Error creating visit:", error);
+      toast.error(error.message || "Failed to schedule visit");
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-
-    return false;
-  };
+  }, []);
 
   const handleQRGenerated = (qrData) => {
     setGeneratedQRData(qrData);
@@ -110,16 +253,23 @@ const VisitorDashboard = () => {
     navigate("/login");
   };
 
-  if (loading || !profile) {
-    return <LoadingSpinner message="Loading your dashboard..." />;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   // Dashboard content to be rendered when on root path
   const DashboardContent = () => (
-    <>
-      <header className="mb-8">
+    <div className="space-y-8">
+      <header className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white">
-          Welcome, {profile.fullName} 👋
+          Welcome, {user.fullName} 👋
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
           Here's your dashboard overview.
@@ -127,7 +277,7 @@ const VisitorDashboard = () => {
       </header>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <StatsCard
           title="UPCOMING VISITS"
           value={visitStats.upcoming}
@@ -154,84 +304,138 @@ const VisitorDashboard = () => {
       </div>
 
       {/* Dashboard Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Schedule Visit Card */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
+            <PlusCircle size={20} className="mr-2 text-blue-500" />
+            Schedule a New Visit
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            Schedule your visit and get a QR code for easy check-in.
+          </p>
+          <Link to="/visitor/schedule-visit" className="block">
+            <button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 rounded-lg font-medium transition-all duration-200 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 flex items-center justify-center">
+              <PlusCircle size={20} className="mr-2" />
+              Schedule Visit
+            </button>
+          </Link>
+        </div>
+
         {/* Upcoming Visits */}
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
             <Clipboard size={20} className="mr-2 text-blue-500" />
             Upcoming Visits
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {topVisits.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">
-                No upcoming visits scheduled.
-              </p>
-            ) : (
-              topVisits.map((visit) => (
-                <div
-                  key={visit.id}
-                  className="p-4 border dark:bg-gray-800 dark:text-white border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-500 transition-colors duration-200 bg-gray-50 dark:bg-gray-750"
-                >
-                  <p className="font-medium text-gray-800 dark:text-white">
-                    {visit.company}
-                  </p>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
-                      <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                      {formatDateForDisplay(visit.date)}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                      {formatTimeForDisplay(visit.time)}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                    {visit.purpose || "No purpose specified"}
-                  </p>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+                  <svg
+                    className="w-full h-full"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
                 </div>
-              ))
-            )}
-          </div>
+                <p className="text-gray-500">No upcoming visits scheduled</p>
+                <button
+                  onClick={() => navigate("/visitor/visit-form")}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                >
+                  Schedule a Visit
+                </button>
+              </div>
+            ) : (
+              <>
+                {topVisits.map((visit, index) => (
+                  <div
+                    key={visit._id}
+                    className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1"
+                    style={{
+                      animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+                    }}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold transition-transform duration-300 hover:scale-110">
+                        {visit.visitorName?.charAt(0) || "V"}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800">{visit.visitorName}</p>
+                        <p className="text-sm text-gray-600">
+                          {new Date(visit.visitDate).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full transition-colors duration-300 hover:bg-blue-200">
+                        {visit.status}
+                      </span>
+                      <button
+                        onClick={() => handleViewDetails(visit)}
+                        className="p-2 text-blue-600 hover:text-blue-800 transition-all duration-300 transform hover:scale-110"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
           <div className="mt-4">
-            <Link to="/visitor/visit-summary" className="w-full">
+                  <Link to="/visitor/visit-summary" className="block">
               <button className="w-full text-center text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
                 View all visits →
               </button>
             </Link>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Feedback */}
-        <div className="bg-white dark:bg-gray-800 dark:text-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
+            <Bell size={20} className="mr-2 text-blue-500" />
             Feedback
           </h2>
           <FeedbackForm />
-        </div>
       </div>
 
       {/* Generate QR Code */}
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
           <QrCode size={20} className="mr-2 text-blue-500" />
           Generate Visit QR Code
         </h2>
-
         <VisitForm
           onSubmit={handleVisitSubmit}
           onQRGenerated={handleQRGenerated}
           initialQRData={generatedQRData}
         />
       </div>
-    </>
+      </div>
+    </div>
   );
-
-  // Create the user object structure expected by DashboardLayout
-  const user = {
-    fullName: profile.fullName,
-    role: profile.role || "Visitor",
-    avatarUrl: profile.avatarUrl || "https://i.pravatar.cc/100?img=2",
-  };
 
   return (
     <DashboardLayout
