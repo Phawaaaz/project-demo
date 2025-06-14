@@ -68,12 +68,13 @@ const VisitorDashboard = () => {
 
   const [loading, setLoading] = useState(contextLoading);
   const [generatedQRData, setGeneratedQRData] = useState("");
-  const [topVisits, setTopVisits] = useState([]);
   const [visitStats, setVisitStats] = useState({
     upcoming: 0,
     completed: 0,
     total: 0,
   });
+  const [topVisits, setTopVisits] = useState([]);
+  const [completedVisits, setCompletedVisits] = useState([]);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -86,7 +87,8 @@ const VisitorDashboard = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/summary", {
+      // Fetch summary data
+      const summaryResponse = await fetch("https://phawaazvms.onrender.com/api/visitors/summary", {
         method: "GET",
         headers: {
           'Accept': 'application/json',
@@ -95,25 +97,39 @@ const VisitorDashboard = () => {
         mode: 'cors',
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch visitor summary");
+      // Fetch detailed visits data
+      const visitsResponse = await fetch("https://phawaazvms.onrender.com/api/visitors/my-visits", {
+        method: "GET",
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        mode: 'cors',
+      });
+
+      if (!summaryResponse.ok || !visitsResponse.ok) {
+        throw new Error("Failed to fetch visitor data");
       }
 
-      const data = await response.json();
-      console.log("Fetched visitor summary:", data);
+      const summaryData = await summaryResponse.json();
+      const visitsData = await visitsResponse.json();
+
+      console.log("Fetched visitor summary:", summaryData);
+      console.log("Fetched visits data:", visitsData);
 
       // Update stats with the summary data
       setVisitStats({
-         upcoming: data.data.upcomingVisits || 0,
-        completed: data.data.completedVisits || 0,
-        total: data.data.totalVisits || 0,
-  });
+        upcoming: summaryData.data.upcomingVisits || 0,
+        completed: summaryData.data.completedVisits || 0,
+        total: summaryData.data.totalVisits || 0,
+      });
 
-      // Update top visits with upcoming visits list
-      setTopVisits(data.data.upcomingVisitsList?.slice(0, 3) || []);
+      // Update visits lists
+      setTopVisits(visitsData.data.upcomingVisits?.slice(0, 3) || []);
+      setCompletedVisits(visitsData.data.completedVisits || []);
 
     } catch (error) {
-      console.error("Error fetching visitor summary:", error);
+      console.error("Error fetching visitor data:", error);
       // Set default values if fetch fails
       setVisitStats({
         upcoming: 0,
@@ -121,7 +137,8 @@ const VisitorDashboard = () => {
         total: 0,
       });
       setTopVisits([]);
-      toast.error("Failed to load visitor summary");
+      setCompletedVisits([]);
+      toast.error("Failed to load visitor data");
     } finally {
       setIsLoading(false);
     }
@@ -322,14 +339,14 @@ const VisitorDashboard = () => {
           </Link>
         </div>
 
-        {/* Upcoming Visits */}
+        {/* Visits Overview */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
             <Clipboard size={20} className="mr-2 text-blue-500" />
-            Upcoming Visits
+            Visits Overview
           </h2>
           <div className="space-y-4">
-            {topVisits.length === 0 ? (
+            {topVisits.length === 0 && completedVisits.length === 0 ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
                   <svg
@@ -346,9 +363,9 @@ const VisitorDashboard = () => {
                     />
                   </svg>
                 </div>
-                <p className="text-gray-500">No upcoming visits scheduled</p>
+                <p className="text-gray-500">No visits scheduled</p>
                 <button
-                  onClick={() => navigate("/visitor/visit-form")}
+                  onClick={() => navigate("/visitor/schedule-visit")}
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
                   Schedule a Visit
@@ -356,56 +373,124 @@ const VisitorDashboard = () => {
               </div>
             ) : (
               <>
-                {topVisits.map((visit, index) => (
-                  <div
-                    key={visit._id}
-                    className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1"
-                    style={{
-                      animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
-                    }}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold transition-transform duration-300 hover:scale-110">
-                        {visit.visitorName?.charAt(0) || "V"}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-800">{visit.visitorName}</p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(visit.visitDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full transition-colors duration-300 hover:bg-blue-200">
-                        {visit.status}
-                      </span>
-                      <button
-                        onClick={() => handleViewDetails(visit)}
-                        className="p-2 text-blue-600 hover:text-blue-800 transition-all duration-300 transform hover:scale-110"
+                {/* Upcoming Visits */}
+                {topVisits.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-3">Upcoming Visits</h3>
+                    {topVisits.map((visit, index) => (
+                      <div
+                        key={visit._id}
+                        className="flex flex-col p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 mb-3"
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                              {visit.visitorName?.charAt(0) || "V"}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{visit.visitorName}</p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(visit.visitDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-full">
+                            Upcoming
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Visit Time</p>
+                            <p className="font-medium text-gray-800">{new Date(visit.visitDate).toLocaleTimeString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Purpose</p>
+                            <p className="font-medium text-gray-800">{visit.purpose || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Host</p>
+                            <p className="font-medium text-gray-800">{visit.hostName || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Department</p>
+                            <p className="font-medium text-gray-800">{visit.department || 'Not specified'}</p>
+                          </div>
+                        </div>
+                        {visit.qrCode && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 mb-2">QR Code</p>
+                            <img 
+                              src={visit.qrCode} 
+                              alt="Visit QR Code" 
+                              className="w-24 h-24 mx-auto"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-          <div className="mt-4">
+                )}
+
+                {/* Completed Visits */}
+                {completedVisits.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-3">Completed Visits</h3>
+                    {completedVisits.map((visit, index) => (
+                      <div
+                        key={visit._id}
+                        className="flex flex-col p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100 hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 mb-3"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold">
+                              {visit.visitorName?.charAt(0) || "V"}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{visit.visitorName}</p>
+                              <p className="text-sm text-gray-600">
+                                {new Date(visit.visitDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-full">
+                            Completed
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-600">Visit Time</p>
+                            <p className="font-medium text-gray-800">{new Date(visit.visitDate).toLocaleTimeString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Purpose</p>
+                            <p className="font-medium text-gray-800">{visit.purpose || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Host</p>
+                            <p className="font-medium text-gray-800">{visit.hostName || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600">Department</p>
+                            <p className="font-medium text-gray-800">{visit.department || 'Not specified'}</p>
+                          </div>
+                        </div>
+                        {visit.feedback && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 mb-1">Feedback</p>
+                            <p className="text-sm text-gray-800">{visit.feedback}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4">
                   <Link to="/visitor/visit-summary" className="block">
-              <button className="w-full text-center text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
-                View all visits →
-              </button>
-            </Link>
+                    <button className="w-full text-center text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+                      View all visits →
+                    </button>
+                  </Link>
                 </div>
               </>
             )}
@@ -419,20 +504,20 @@ const VisitorDashboard = () => {
             Feedback
           </h2>
           <FeedbackForm />
-      </div>
+        </div>
 
-      {/* Generate QR Code */}
+        {/* Generate QR Code */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
-          <QrCode size={20} className="mr-2 text-blue-500" />
-          Generate Visit QR Code
-        </h2>
-        <VisitForm
-          onSubmit={handleVisitSubmit}
-          onQRGenerated={handleQRGenerated}
-          initialQRData={generatedQRData}
-        />
-      </div>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
+            <QrCode size={20} className="mr-2 text-blue-500" />
+            Generate Visit QR Code
+          </h2>
+          <VisitForm
+            onSubmit={handleVisitSubmit}
+            onQRGenerated={handleQRGenerated}
+            initialQRData={generatedQRData}
+          />
+        </div>
       </div>
     </div>
   );
