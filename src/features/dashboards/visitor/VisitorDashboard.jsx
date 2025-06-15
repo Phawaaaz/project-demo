@@ -87,8 +87,7 @@ const VisitorDashboard = () => {
         throw new Error("No authentication token found");
       }
 
-      // Fetch summary data
-      const summaryResponse = await fetch("https://phawaazvms.onrender.com/api/visitors/summary", {
+      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/my-visits", {
         method: "GET",
         headers: {
           'Accept': 'application/json',
@@ -97,36 +96,23 @@ const VisitorDashboard = () => {
         mode: 'cors',
       });
 
-      // Fetch detailed visits data
-      const visitsResponse = await fetch("https://phawaazvms.onrender.com/api/visitors/my-visits", {
-        method: "GET",
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        mode: 'cors',
-      });
-
-      if (!summaryResponse.ok || !visitsResponse.ok) {
+      if (!response.ok) {
         throw new Error("Failed to fetch visitor data");
       }
 
-      const summaryData = await summaryResponse.json();
-      const visitsData = await visitsResponse.json();
+      const data = await response.json();
+      console.log("Fetched visits data:", data);
 
-      console.log("Fetched visitor summary:", summaryData);
-      console.log("Fetched visits data:", visitsData);
-
-      // Update stats with the summary data
+      // Update stats with the visits data
       setVisitStats({
-        upcoming: summaryData.data.upcomingVisits || 0,
-        completed: summaryData.data.completedVisits || 0,
-        total: summaryData.data.totalVisits || 0,
+        upcoming: data.data.upcomingVisits?.length || 0,
+        completed: data.data.completedVisits?.length || 0,
+        total: (data.data.upcomingVisits?.length || 0) + (data.data.completedVisits?.length || 0),
       });
 
       // Update visits lists
-      setTopVisits(visitsData.data.upcomingVisits?.slice(0, 3) || []);
-      setCompletedVisits(visitsData.data.completedVisits || []);
+      setTopVisits(data.data.upcomingVisits?.slice(0, 3) || []);
+      setCompletedVisits(data.data.completedVisits || []);
 
     } catch (error) {
       console.error("Error fetching visitor data:", error);
