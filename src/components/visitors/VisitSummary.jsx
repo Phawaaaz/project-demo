@@ -1,5 +1,6 @@
-import React from "react";
-import { useVisit } from "../../hooks/VisitContext";
+import React, { useState, useEffect } from "react";
+import ResponsiveTable from "../../components/common/ResponsiveTable";
+import toast from "react-hot-toast";
 import {
   CalendarDays,
   Building2,
@@ -10,14 +11,72 @@ import {
 } from "lucide-react";
 
 const VisitSummary = () => {
-  const { visitSummary } = useVisit();
+  const [allVisits, setAllVisits] = useState([]);
+  const [upcomingVisits, setUpcomingVisits] = useState([]);
+  const [completedVisits, setCompletedVisits] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all"); // New state for active tab
+
+  // Fetch visitor visits data
+  const fetchVisitorVisits = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/visitors/my-visits",
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          mode: "cors",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch visitor data");
+      }
+
+      const data = await response.json();
+      console.log("Fetched visits data:", data);
+
+      // Set the visits data
+      setUpcomingVisits(data.data.upcomingVisits || []);
+      setCompletedVisits(data.data.completedVisits || []);
+
+      // Combine all visits for the table
+      const combined = [
+        ...(data.data.upcomingVisits || []),
+        ...(data.data.completedVisits || []),
+      ];
+      setAllVisits(combined);
+    } catch (error) {
+      console.error("Error fetching visitor data:", error);
+      setUpcomingVisits([]);
+      setCompletedVisits([]);
+      setAllVisits([]);
+      toast.error("Failed to load visit data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVisitorVisits();
+  }, []);
 
   // Function to get the appropriate icon based on visit status
   const getStatusIcon = (status) => {
     switch (status) {
       case "Checked In":
+      case "Completed":
         return <CheckCircle size={18} className="text-green-500" />;
       case "Scheduled":
+      case "Upcoming":
         return <Clock3 size={18} className="text-blue-500" />;
       case "Cancelled":
         return <AlertCircle size={18} className="text-red-500" />;
@@ -25,6 +84,120 @@ const VisitSummary = () => {
         return null;
     }
   };
+
+  // Function to get status styling
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "Checked In":
+      case "Completed":
+        return "px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full dark:bg-green-900/30 dark:text-green-400";
+      case "Scheduled":
+      case "Upcoming":
+        return "px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full dark:bg-blue-900/30 dark:text-blue-400";
+      case "Cancelled":
+        return "px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full dark:bg-red-900/30 dark:text-red-400";
+      default:
+        return "px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-full dark:bg-gray-700 dark:text-gray-300";
+    }
+  };
+
+  // Function to determine visit status
+  const getVisitStatus = (visit, isCompleted) => {
+    if (isCompleted) {
+      return "Completed";
+    }
+    return "Upcoming";
+  };
+
+  // Function to get current data based on active tab
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case "upcoming":
+        return upcomingVisits;
+      case "completed":
+        return completedVisits;
+      default:
+        return allVisits;
+    }
+  };
+
+  // Tab configuration
+  const tabs = [
+    {
+      id: "all",
+      label: "All Visits",
+      count: allVisits.length,
+      icon: <CalendarDays size={16} />,
+    },
+    {
+      id: "upcoming",
+      label: "Upcoming",
+      count: upcomingVisits.length,
+      icon: <Clock3 size={16} />,
+    },
+    {
+      id: "completed",
+      label: "Completed",
+      count: completedVisits.length,
+      icon: <CheckCircle size={16} />,
+    },
+  ];
+
+  // Define table columns
+  const columns = [
+    {
+      header: "Company",
+      accessor: "company",
+      render: (row) => (
+        <div className="flex items-center">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold mr-2">
+            <Building2 size={16} />
+          </div>
+          {row.company || "Not specified"}
+        </div>
+      ),
+    },
+    {
+      header: "Visit Date",
+      accessor: "date",
+      render: (row) => (
+        <div className="flex items-center">
+          <CalendarDays size={16} className="mr-2 text-gray-400" />
+          {row.date}
+        </div>
+      ),
+    },
+    {
+      header: "Visit Time",
+      accessor: "time",
+      render: (row) => (
+        <div className="flex items-center">
+          <Clock size={16} className="mr-2 text-gray-400" />
+          {row.time || "Not specified"}
+        </div>
+      ),
+    },
+    {
+      header: "Purpose",
+      accessor: "purpose",
+    },
+    {
+      header: "Host",
+      accessor: "hostName",
+    },
+    {
+      header: "Status",
+      accessor: "status",
+      render: (row) => (
+        <span
+          className={`flex items-center gap-1.5 ${getStatusStyle(row.status)}`}
+        >
+          {getStatusIcon(row.status)}
+          {row.status}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div className="h-full">
@@ -38,67 +211,53 @@ const VisitSummary = () => {
         </p>
       </header>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
-        {visitSummary.length === 0 ? (
-          <div className="text-center py-8">
-            <Clock size={48} className="text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
-              No visits to display.
-            </p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-              Scheduled and past visits will appear here.
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-            {visitSummary.map((visit) => (
-              <li
-                key={visit.id}
-                className="py-4 hover:bg-gray-50 dark:hover:bg-gray-700 px-2 rounded-lg transition-colors duration-150"
+      {/* Custom Tab UI */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`${
+                  activeTab === tab.id
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                      <Building2 size={24} className="text-blue-500" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800 dark:text-white">
-                        {visit.company}
-                      </h3>
-                      <div className="flex items-center mt-1 text-sm text-gray-600 dark:text-gray-300">
-                        <CalendarDays size={16} className="mr-1" />
-                        <span>{visit.date}</span>
-                      </div>
-                      {visit.time && (
-                        <div className="flex items-center mt-1 text-sm text-gray-600 dark:text-gray-300">
-                          <Clock size={16} className="mr-1" />
-                          <span>{visit.time}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`py-1 px-3 rounded-full text-sm font-medium flex items-center gap-1.5
-                        ${
-                          visit.status === "Checked In"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : visit.status === "Scheduled"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                            : visit.status === "Cancelled"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                        }`}
-                    >
-                      {getStatusIcon(visit.status)}
-                      {visit.status}
-                    </div>
-                  </div>
-                </div>
-              </li>
+                {tab.icon}
+                {tab.label}
+                <span
+                  className={`${
+                    activeTab === tab.id
+                      ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
+                      : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                  } ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium transition-colors duration-200`}
+                >
+                  {tab.count}
+                </span>
+              </button>
             ))}
-          </ul>
-        )}
+          </nav>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
+        <ResponsiveTable
+          columns={columns}
+          data={getCurrentData()}
+          emptyMessage={`No ${
+            activeTab === "all" ? "" : activeTab
+          } visits to display. ${
+            activeTab === "upcoming"
+              ? "Scheduled visits will appear here."
+              : activeTab === "completed"
+              ? "Completed visits will appear here."
+              : "Scheduled and past visits will appear here."
+          }`}
+          mobileCardTitle={(row) => row.company || "Visit"}
+          emptyIcon={<Clock size={48} className="text-gray-400 mx-auto mb-4" />}
+        />
       </div>
 
       <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
