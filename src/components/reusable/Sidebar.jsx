@@ -1,55 +1,67 @@
-import { Menu, LogOut } from "lucide-react";
-import UserAvatar from "../reusable/UserAvatar";
-import NavMenu from "../reusable/NavMenu"; 
+import { Menu, LogOut, ChevronRight, ChevronLeft } from "lucide-react";
+import NavMenu from "../reusable/NavMenu";
 
 const Sidebar = ({
-  user,
   navItems,
   dashboardTitle,
   unreadNotifications,
   isCollapsed,
   setIsCollapsed,
   handleLogout,
-  currentPath, 
+  currentPath,
+  isMobile,
+  onCloseMobileSidebar,
+  // currentPath,
 }) => {
   return (
     <aside
-      className={`${
-        isCollapsed ? "w-20" : "w-64"
-      } bg-gray-100 dark:bg-gray-950 text-dark dark:text-white p-4 flex flex-col justify-between h-screen transition-all duration-300 fixed lg:static z-30`}
+      className={`h-screen flex flex-col justify-between ${
+        isMobile
+          ? "w-64 bg-white dark:bg-gray-950 shadow-xl"
+          : isCollapsed
+          ? "w-20 bg-gray-100 dark:bg-gray-950"
+          : "w-64 bg-gray-100 dark:bg-gray-950"
+      } p-4 transition-all duration-300`}
     >
       <div>
-        <div className="">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`${
-              isCollapsed ? "mx-auto" : "justify-center"
-            } text-dark dark:text-white focus:outline-none lg:block flex mb-6`}
-            aria-label="Toggle sidebar"
+        {/* Collapse toggle - only shown on desktop */}
+        {!isMobile && (
+          <div
+            className={`flex mb-4 mt-2 ${
+              isCollapsed ? "justify-center" : "justify-end"
+            }`}
           >
-            <Menu size={24} />
-          </button>
-        </div>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-50 transition-colors"
+              aria-label="Toggle sidebar"
+            >
+              {isCollapsed ? (
+                <ChevronRight size={24} />
+              ) : (
+                <ChevronLeft size={24} />
+              )}
+            </button>
+          </div>
+        )}
 
-        {!isCollapsed && (
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+        {(!isCollapsed || isMobile) && (
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-6">
             {dashboardTitle}
           </h2>
         )}
 
-        {/* User Avatar and Info */}
-        <UserAvatar user={user} isCollapsed={isCollapsed} />
-
-        {/* Navigation - Use NavMenu component instead */}
+        {/* Navigation */}
         <nav className="flex mt-8">
           <NavMenu
             items={navItems}
-            isCollapsed={isCollapsed}
+            isCollapsed={isCollapsed && !isMobile}
             currentPath={currentPath}
             unreadCounts={{
               Dashboard: unreadNotifications,
               Notifications: unreadNotifications,
             }}
+            onItemClick={isMobile ? onCloseMobileSidebar : undefined}
           />
         </nav>
       </div>
@@ -57,11 +69,12 @@ const Sidebar = ({
       {/* Logout */}
       <button
         onClick={handleLogout}
-        title={isCollapsed ? "Logout" : ""}
-        className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg transition-colors duration-200 w-full mt-auto text-white"
+        className={`flex items-center ${
+          isCollapsed && !isMobile ? "justify-center" : "justify-start"
+        } gap-2 bg-red-600 hover:bg-red-700 px-4 py-3 rounded-lg transition-colors duration-200 w-full mt-auto text-white`}
       >
         <LogOut size={18} />
-        {!isCollapsed && <span>Logout</span>}
+        {(!isCollapsed || isMobile) && <span>Logout</span>}
       </button>
     </aside>
   );

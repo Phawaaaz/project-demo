@@ -91,14 +91,17 @@ const AdminDashboard = () => {
           return;
         }
 
-        const response = await fetch("https://phawaazvms.onrender.com/api/auth/me", {
-          method: "GET",
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          mode: 'cors',
-        });
+        const response = await fetch(
+          "https://phawaazvms.onrender.com/api/auth/me",
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            mode: "cors",
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch user data");
@@ -109,11 +112,16 @@ const AdminDashboard = () => {
 
         // Update admin state with the fetched data
         const adminInfo = {
-          fullName: userData.data?.firstName && userData.data?.lastName 
-            ? `${userData.data.firstName} ${userData.data.lastName}`
-            : localStorage.getItem("user_full_name") || "Admin User",
-          role: userData.data?.role || localStorage.getItem("user_role") || "Admin",
-          avatarUrl: userData.data?.photo || localStorage.getItem("user_photo") || "https://i.pravatar.cc/100?img=1",
+          fullName:
+            userData.data?.firstName && userData.data?.lastName
+              ? `${userData.data.firstName} ${userData.data.lastName}`
+              : localStorage.getItem("user_full_name") || "Admin User",
+          role:
+            userData.data?.role || localStorage.getItem("user_role") || "Admin",
+          avatarUrl:
+            userData.data?.photo ||
+            localStorage.getItem("user_photo") ||
+            "https://i.pravatar.cc/100?img=1",
         };
         console.log("Setting admin state:", adminInfo);
         setAdmin(adminInfo);

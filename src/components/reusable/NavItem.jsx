@@ -9,7 +9,7 @@ const NavItem = ({ item, isCollapsed, isActive, unreadCount = 0 }) => {
           isCollapsed ? "justify-center" : "space-x-3"
         } hover:bg-gray-300 dark:hover:bg-gray-800 hover:text-dark-400 transition-all duration-100 rounded-lg p-3 ${
           isActive
-            ? "text-dark-400 font-bold bg-gray-300 dark:bg-gray-800 shadow-sm"
+            ? "text-white font-bold bg-gray-300 dark:bg-gray-800 shadow-sm"
             : "dark:text-gray-300"
         }`}
         title={isCollapsed ? item.label : ""}
