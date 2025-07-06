@@ -42,60 +42,56 @@ const Schedule = () => {
   };
 
   useEffect(() => {
-    // Simulate fetching appointments
-    const timer = setTimeout(() => {
-      // Sample appointment data
-      const sampleAppointments = [
-        {
-          id: "a1",
-          visitorName: "Alice Brown",
-          purpose: "Interview",
-          host: "HR Department",
-          time: "09:30 AM",
-          date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 12),
-          notes: "Position: Marketing Manager",
-          email: "alice@example.com",
-          phone: "555-1234",
-        },
-        {
-          id: "a2",
-          visitorName: "Mark Wilson",
-          purpose: "Client Meeting",
-          host: "Sales Team",
-          time: "11:00 AM",
-          date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 15),
-          notes: "Quarterly review",
-          email: "mark@clientcompany.com",
-          phone: "555-5678",
-        },
-        {
-          id: "a3",
-          visitorName: "Sarah Johnson",
-          purpose: "Vendor Discussion",
-          host: "Procurement",
-          time: "02:30 PM",
-          date: new Date(),
-          notes: "Contract renewal",
-          email: "sarah@vendor.com",
-          phone: "555-9012",
-        },
-        {
-          id: "a4",
-          visitorName: "David Lee",
-          purpose: "Training",
-          host: "IT Department",
-          time: "10:00 AM",
-          date: new Date(),
-          notes: "New system onboarding",
-          email: "david@training.com",
-          phone: "555-3456",
-        },
-      ];
-      setAppointments(sampleAppointments);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Load appointments immediately
+    // Sample appointment data
+    const sampleAppointments = [
+      {
+        id: "a1",
+        visitorName: "Alice Brown",
+        purpose: "Interview",
+        host: "HR Department",
+        time: "09:30 AM",
+        date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 12),
+        notes: "Position: Marketing Manager",
+        email: "alice@example.com",
+        phone: "555-1234",
+      },
+      {
+        id: "a2",
+        visitorName: "Mark Wilson",
+        purpose: "Client Meeting",
+        host: "Sales Team",
+        time: "11:00 AM",
+        date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 15),
+        notes: "Quarterly review",
+        email: "mark@clientcompany.com",
+        phone: "555-5678",
+      },
+      {
+        id: "a3",
+        visitorName: "Sarah Johnson",
+        purpose: "Vendor Discussion",
+        host: "Procurement",
+        time: "02:30 PM",
+        date: new Date(),
+        notes: "Contract renewal",
+        email: "sarah@vendor.com",
+        phone: "555-9012",
+      },
+      {
+        id: "a4",
+        visitorName: "David Lee",
+        purpose: "Training",
+        host: "IT Department",
+        time: "10:00 AM",
+        date: new Date(),
+        notes: "New system onboarding",
+        email: "david@training.com",
+        phone: "555-3456",
+      },
+    ];
+    setAppointments(sampleAppointments);
+    setLoading(false);
   }, []);
 
   const handlePrevMonth = () => {

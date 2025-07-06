@@ -1,52 +1,32 @@
-import { useState, useEffect } from "react";
-import SettingsTabs from "../../components/reusable/SettingsTabs";
-import ProfileSettings from "../../components/admins/adminsettings/ProfileSettings";
-import NotificationSettings from "../../components/admins/adminsettings/NotificationSettings";
-import AppearanceSettings from "../../components/admins/adminsettings/AppearanceSettings";
-import SaveButton from "../../components/reusable/SaveButton";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { User, Camera, Save, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
-import { Settings } from "lucide-react";
+import { validateToken, handleAuthResponse } from "../../utils/authUtils";
 
 const VisitorSettings = () => {
-  const [activeTab, setActiveTab] = useState("profile");
-  const [loading, setLoading] = useState(true);
-  const [saveStatus, setSaveStatus] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    profile: {
-      fullName: "",
-      email: "",
-      phone: "",
-      company: "",
-      purpose: "",
-      profileImage: "",
-      timeZone: "UTC+0",
-    },
-    notifications: {
-      emailAlerts: true,
-      smsAlerts: false,
-      pushNotifications: true,
-      upcomingVisits: true,
-      checkInReminders: true,
-    },
-    appearance: {
-      theme: localStorage.getItem("theme") || "system",
-      compactMode: false,
-      dateFormat: "MM/DD/YYYY",
-      timeFormat: "12h",
-    },
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
   });
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    const fetchVisitorSettings = async () => {
+    const fetchUserProfile = async () => {
       try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          throw new Error("No authentication token found");
+        // Validate token before making request
+        if (!validateToken(navigate)) {
+          return;
         }
 
-        // Fetch user profile data
-        const response = await fetch("https://phawaazvms.onrender.com/api/auth/me", {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch("https://phawaazvms.onrender.com/api/auth/profile", {
           method: "GET",
           headers: {
             'Accept': 'application/json',
@@ -55,253 +35,241 @@ const VisitorSettings = () => {
           mode: 'cors',
         });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch visitor settings");
+        // Handle authentication errors
+        if (!handleAuthResponse(response, navigate)) {
+          return;
         }
 
-        const userData = await response.json();
-        
-        // Update form data with fetched user data
-        setFormData(prev => ({
-          ...prev,
-          profile: {
-            fullName: userData.data?.firstName && userData.data?.lastName 
-              ? `${userData.data.firstName} ${userData.data.lastName}`
-              : localStorage.getItem("user_full_name") || "",
-            email: userData.data?.email || "",
-            phone: userData.data?.phone || "",
-            company: userData.data?.company || "",
-            purpose: userData.data?.purpose || "",
-            profileImage: userData.data?.photo || localStorage.getItem("user_photo") || "",
-            timeZone: userData.data?.timeZone || "UTC+0",
-          }
-        }));
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching visitor settings:", error);
-        toast.error("Failed to load visitor settings");
-        setLoading(false);
-      }
-    };
-
-    fetchVisitorSettings();
-  }, []);
-
-  const handleInputChange = (section, field, value) => {
-    setFormData({
-      ...formData,
-      [section]: {
-        ...formData[section],
-        [field]: value,
-      },
-    });
-  };
-
-  const handleCheckboxChange = (section, field) => {
-    setFormData({
-      ...formData,
-      [section]: {
-        ...formData[section],
-        [field]: !formData[section][field],
-      },
-    });
-  };
-
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const formData = new FormData();
-        formData.append("photo", file);
-
-        const response = await fetch("https://phawaazvms.onrender.com/api/auth/upload-photo", {
-          method: "POST",
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData,
-          mode: 'cors',
-        });
-
         if (!response.ok) {
-          throw new Error("Failed to upload photo");
+          throw new Error("Failed to fetch user profile");
         }
 
         const data = await response.json();
-        
-        setFormData(prev => ({
-          ...prev,
-          profile: {
-            ...prev.profile,
-            profileImage: data.data.photo
-          }
-        }));
+        setUserData(data.data);
 
-        localStorage.setItem("user_photo", data.data.photo);
-        toast.success("Profile photo updated successfully");
+        // Pre-fill form with existing data
+        setFormData({
+          firstName: data.data.firstName || "",
+          lastName: data.data.lastName || "",
+          email: data.data.email || "",
+          phone: data.data.phone || "",
+        });
+
+        if (data.data.photo) {
+          setPhotoPreview(data.data.photo);
+        }
       } catch (error) {
-        console.error("Error uploading photo:", error);
-        toast.error("Failed to upload photo");
+        console.error("Error fetching user profile:", error);
+        toast.error("Failed to load user profile");
       }
+    };
+
+    fetchUserProfile();
+  }, [navigate]);
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      setPhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaveStatus("saving");
+    setLoading(true);
 
     try {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        throw new Error("No authentication token found");
+      // Validate token before making request
+      if (!validateToken(navigate)) {
+        return;
       }
 
-      // Update profile data
+      const token = localStorage.getItem("access_token");
+      const formDataToSend = new FormData();
+      
+      formDataToSend.append("firstName", formData.firstName);
+      formDataToSend.append("lastName", formData.lastName);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("phone", formData.phone);
+      
+      if (photo) {
+        formDataToSend.append("photo", photo);
+      }
+
       const response = await fetch("https://phawaazvms.onrender.com/api/auth/update-profile", {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          firstName: formData.profile.fullName.split(" ")[0],
-          lastName: formData.profile.fullName.split(" ").slice(1).join(" "),
-          email: formData.profile.email,
-          phone: formData.profile.phone,
-          company: formData.profile.company,
-          purpose: formData.profile.purpose,
-          timeZone: formData.profile.timeZone
-        }),
-        mode: "cors"
+        body: formDataToSend,
+        mode: 'cors',
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
+      // Handle authentication errors
+      if (!handleAuthResponse(response, navigate)) {
+        return;
       }
 
-      // Update notifications settings
-      await fetch("https://phawaazvms.onrender.com/api/auth/update-notifications", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(formData.notifications),
-        mode: "cors"
-      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update profile");
+      }
 
-      // Update appearance settings
-      localStorage.setItem("theme", formData.appearance.theme);
-      localStorage.setItem("dateFormat", formData.appearance.dateFormat);
-      localStorage.setItem("timeFormat", formData.appearance.timeFormat);
-
-      setSaveStatus("saved");
-      toast.success("Settings saved successfully");
-
-      // Update localStorage with new name
-      localStorage.setItem("user_full_name", formData.profile.fullName);
-
-      // Reset the status after 3 seconds
-      setTimeout(() => {
-        setSaveStatus(null);
-      }, 3000);
+      const data = await response.json();
+      toast.success("Profile updated successfully!");
+      
+      // Update localStorage with new data
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      localStorage.setItem("user_full_name", fullName);
+      if (data.data?.photo) {
+        localStorage.setItem("user_photo", data.data.photo);
+      }
+      
     } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("Failed to save settings");
-      setSaveStatus("error");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full space-y-6 bg-gray-50 dark:bg-gray-900">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }} />
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-pulse" style={{ animationDuration: '2s' }} />
-        </div>
-        <div className="flex flex-col items-center space-y-2">
-          <p className="text-gray-600 dark:text-gray-300 text-lg font-medium animate-bounce">
-            Loading your settings...
-          </p>
-          <div className="flex space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-            <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "profile":
-        return (
-          <ProfileSettings
-            profileData={formData.profile}
-            handleInputChange={handleInputChange}
-            handleImageChange={handleImageChange}
-          />
-        );
-      case "notifications":
-        return (
-          <NotificationSettings
-            notificationsData={formData.notifications}
-            handleCheckboxChange={handleCheckboxChange}
-          />
-        );
-      case "appearance":
-        return (
-          <AppearanceSettings
-            appearanceData={formData.appearance}
-            handleInputChange={handleInputChange}
-            handleCheckboxChange={handleCheckboxChange}
-          />
-        );
-      default:
-        return <ProfileSettings profileData={formData.profile} />;
+      console.error("Error updating profile:", error);
+      toast.error(error.message || "Failed to update profile");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="h-full dark:bg-gray-900 transition-colors duration-200">
-      <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
-          <Settings size={28} className="text-blue-500" />
-          Visitor Settings
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Manage your visitor account settings and preferences
-        </p>
-      </header>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="mr-4 p-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+          </button>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+            Profile Settings
+          </h1>
+        </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="flex flex-col md:flex-row">
-          {/* Tabs sidebar - passing the visitor-specific tabs */}
-          <SettingsTabs
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            availableTabs={["profile", "notifications", "appearance"]}
-          />
+        {/* Settings Form */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Photo Upload */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600">
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    alt="Profile preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <User className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <label className="cursor-pointer bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center gap-2">
+                <Camera size={18} />
+                <span>Change Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Max file size: 5MB. Supported formats: JPG, PNG, GIF
+              </p>
+            </div>
 
-          {/* Tab content */}
-          <div className="flex-1 p-6">
-            <form onSubmit={handleSubmit}>
-              {renderTabContent()}
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                  required
+                />
+              </div>
 
-              {/* Save Button */}
-              <SaveButton saveStatus={saveStatus} />
-            </form>
-          </div>
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full bg-blue-600 dark:bg-blue-700 text-white p-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+                loading
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-blue-700 dark:hover:bg-blue-600 hover:scale-105"
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </div>
+              ) : (
+                <>
+                  <Save size={20} />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </form>
         </div>
       </div>
     </div>

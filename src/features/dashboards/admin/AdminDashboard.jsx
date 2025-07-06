@@ -70,7 +70,7 @@ const AdminDashboard = () => {
   const isDashboardRoot = location.pathname === "/admin";
   const currentPath = location.pathname.split("/").filter(Boolean)[1] || "";
 
-  const [admin, setAdmin] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [visitorStats, setVisitorStats] = useState({
     todayTotal: 0,
@@ -81,18 +81,141 @@ const AdminDashboard = () => {
   const [recentVisitors, setRecentVisitors] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  // Function to fetch visitor statistics
+  const fetchVisitorStats = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        // Set default stats if no token
+        setVisitorStats({
+          todayTotal: 0,
+          checkedIn: 0,
+          pending: 0,
+          completed: 0,
+        });
+        return;
+      }
+
+      const response = await fetch("https://phawaazvms.onrender.com/api/admin/stats", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        mode: "cors",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setVisitorStats({
+          todayTotal: data.data?.todayTotal || 0,
+          checkedIn: data.data?.checkedIn || 0,
+          pending: data.data?.pending || 0,
+          completed: data.data?.completed || 0,
+        });
+      } else {
+        // Set default stats if API fails
+        console.warn("Failed to fetch visitor stats, using defaults");
+        setVisitorStats({
+          todayTotal: 0,
+          checkedIn: 0,
+          pending: 0,
+          completed: 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching visitor stats:", error);
+      // Set default stats on error
+      setVisitorStats({
+        todayTotal: 0,
+        checkedIn: 0,
+        pending: 0,
+        completed: 0,
+      });
+    }
+  }, []);
+
+  // Function to fetch recent visitors
+  const fetchRecentVisitors = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        // Set empty array if no token
+        setRecentVisitors([]);
+        return;
+      }
+
+      const response = await fetch("https://phawaazvms.onrender.com/api/admin/recent-visitors", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        mode: "cors",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecentVisitors(data.data || []);
+      } else {
+        // Set empty array if API fails
+        console.warn("Failed to fetch recent visitors, using empty array");
+        setRecentVisitors([]);
+      }
+    } catch (error) {
+      console.error("Error fetching recent visitors:", error);
+      // Set empty array on error
+      setRecentVisitors([]);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem("access_token");
+        
+        // Check if token exists and is valid
         if (!token) {
           console.log("No token found, redirecting to login");
           navigate("/login");
           return;
         }
 
+        // Check if token is expired
+        try {
+          const tokenData = JSON.parse(atob(token.split('.')[1]));
+          const expirationTime = tokenData.exp * 1000; // Convert to milliseconds
+          if (Date.now() >= expirationTime) {
+            console.log("Token expired, logging out");
+            localStorage.clear();
+            toast.error("Session expired. Please log in again.");
+            navigate("/login");
+            return;
+          }
+        } catch (error) {
+          console.error("Error parsing token:", error);
+          localStorage.clear();
+          toast.error("Invalid session. Please log in again.");
+          navigate("/login");
+          return;
+        }
+
+        // Check if we already have user data in localStorage
+        const cachedUserData = {
+          fullName: localStorage.getItem("user_full_name"),
+          role: localStorage.getItem("user_role"),
+          avatarUrl: localStorage.getItem("user_photo"),
+        };
+
+        // If we have cached data, use it immediately
+        if (cachedUserData.fullName) {
+          setUser(cachedUserData);
+        }
+
+        // Then fetch fresh data in the background
         const response = await fetch(
-          "https://phawaazvms.onrender.com/api/auth/me",
+          "https://phawaazvms.onrender.com/api/auth/profile",
           {
             method: "GET",
             headers: {
@@ -103,109 +226,103 @@ const AdminDashboard = () => {
           }
         );
 
+        if (response.status === 401) {
+          console.log("Unauthorized access, token may be expired");
+          localStorage.clear();
+          toast.error("Session expired. Please log in again.");
+          navigate("/login");
+          return;
+        }
+
         if (!response.ok) {
           throw new Error("Failed to fetch user data");
         }
 
         const userData = await response.json();
-        console.log("Fetched admin data:", userData);
 
-        // Update admin state with the fetched data
-        const adminInfo = {
+        // Update user state with the fetched data
+        const userInfo = {
           fullName:
             userData.data?.firstName && userData.data?.lastName
               ? `${userData.data.firstName} ${userData.data.lastName}`
-              : localStorage.getItem("user_full_name") || "Admin User",
-          role:
-            userData.data?.role || localStorage.getItem("user_role") || "Admin",
+              : cachedUserData.fullName || "Admin",
+          role: userData.data?.role || cachedUserData.role || "Admin",
           avatarUrl:
             userData.data?.photo ||
-            localStorage.getItem("user_photo") ||
+            cachedUserData.avatarUrl ||
             "https://i.pravatar.cc/100?img=1",
         };
-        console.log("Setting admin state:", adminInfo);
-        setAdmin(adminInfo);
+
+        setUser(userInfo);
 
         // Update localStorage with fresh data
-        localStorage.setItem("user_full_name", adminInfo.fullName);
-        localStorage.setItem("user_role", adminInfo.role);
+        localStorage.setItem("user_full_name", userInfo.fullName);
+        localStorage.setItem("user_role", userInfo.role);
         if (userData.data?.photo) {
           localStorage.setItem("user_photo", userData.data.photo);
         }
-
-        // Simulate fetching dashboard data
-        const timer = setTimeout(() => {
-          // Simulate visitor stats
-          setVisitorStats({
-            todayTotal: 24,
-            checkedIn: 8,
-            pending: 12,
-            completed: 4,
-          });
-
-          // Simulate recent visitors
-          setRecentVisitors([
-            {
-              id: "v1",
-              name: "John Doe",
-              purpose: "Interview",
-              host: "HR Department",
-              time: "10:30 AM",
-              status: "checked-in",
-              checkInTime: "10:28 AM",
-            },
-            {
-              id: "v2",
-              name: "Jane Smith",
-              purpose: "Meeting",
-              host: "Marketing Team",
-              time: "11:00 AM",
-              status: "pending",
-            },
-            {
-              id: "v3",
-              name: "Robert Johnson",
-              purpose: "Delivery",
-              host: "Receiving",
-              time: "09:15 AM",
-              status: "completed",
-              checkInTime: "09:10 AM",
-              checkOutTime: "09:45 AM",
-            },
-            {
-              id: "v4",
-              name: "Emily Davis",
-              purpose: "Client Meeting",
-              host: "Sales Team",
-              time: "02:00 PM",
-              status: "pending",
-            },
-            {
-              id: "v5",
-              name: "Michael Wilson",
-              purpose: "Job Interview",
-              host: "Engineering",
-              time: "10:00 AM",
-              status: "checked-in",
-              checkInTime: "09:55 AM",
-            },
-          ]);
-
-          setUnreadNotifications(3);
-          setLoading(false);
-        }, 1500);
-
-        return () => {
-          clearTimeout(timer);
-        };
       } catch (error) {
         console.error("Error fetching user data:", error);
-        toast.error("Failed to load user data");
-        navigate("/login");
+        // Only show error toast if we don't have cached data
+        if (!localStorage.getItem("user_full_name")) {
+          toast.error("Failed to load user data. Please log in again.");
+          localStorage.clear();
+          navigate("/login");
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserData();
+  }, [navigate]);
+
+  // Fetch visitor stats and recent visitors when user is loaded
+  useEffect(() => {
+    if (user) {
+      fetchVisitorStats();
+      fetchRecentVisitors();
+    }
+  }, [user, fetchVisitorStats, fetchRecentVisitors]);
+
+  // Add token expiration check on component mount and set up periodic checks
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const expirationTime = tokenData.exp * 1000;
+        const currentTime = Date.now();
+        const timeUntilExpiration = expirationTime - currentTime;
+
+        // If token expires in less than 5 minutes, show warning
+        if (timeUntilExpiration < 300000 && timeUntilExpiration > 0) {
+          toast.error("Your session will expire soon. Please save your work.");
+        }
+
+        // If token is expired, logout immediately
+        if (currentTime >= expirationTime) {
+          localStorage.clear();
+          toast.error("Session expired. Please log in again.");
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Error checking token expiration:", error);
+        localStorage.clear();
+        toast.error("Invalid session. Please log in again.");
+        navigate("/login");
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+
+    // Set up periodic checks every minute
+    const interval = setInterval(checkTokenExpiration, 60000);
+
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const handleLogout = useCallback(() => {
@@ -214,9 +331,16 @@ const AdminDashboard = () => {
     navigate("/login");
   }, [navigate]);
 
-  if (loading || !admin) {
-    console.log("Loading state:", loading, "Admin state:", admin);
+  if (loading) {
+    console.log("Loading state:", loading, "User state:", user);
     return <LoadingSpinner message="Loading your dashboard..." />;
+  }
+
+  // If no user data after loading is complete, redirect to login
+  if (!user) {
+    console.log("No user data, redirecting to login");
+    navigate("/login");
+    return null;
   }
 
   // Dashboard content to be rendered when on root path
@@ -224,7 +348,7 @@ const AdminDashboard = () => {
     <>
       <header className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white">
-          Welcome, {admin.fullName} 👋
+          Welcome, {user?.fullName} 👋
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
           Here's what's happening today.
@@ -300,7 +424,7 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout
-      user={admin}
+      user={user}
       navItems={navItems}
       currentPath={currentPath}
       unreadNotifications={unreadNotifications}

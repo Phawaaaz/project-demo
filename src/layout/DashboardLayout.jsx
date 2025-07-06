@@ -5,8 +5,8 @@ import VisitorHeader from "../components/common/VisitorHeader";
 import { Clipboard, Bell, Home, Settings, PlusCircle } from "lucide-react";
 import { useCallback } from "react";
 
-// Define navigation items for visitor dashboard
-const navItems = [
+// Default navigation items for visitor dashboard
+const defaultNavItems = [
   {
     to: "",
     label: "Dashboard",
@@ -41,6 +41,7 @@ const DashboardLayout = ({
   handleLogout,
   children,
   currentPath,
+  navItems = defaultNavItems, // Use passed navItems or default to visitor navItems
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);

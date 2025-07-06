@@ -60,50 +60,46 @@ const Settings = () => {
       window.matchMedia("(prefers-color-scheme: dark)").matches;
     setIsDarkMode(userPrefersDark);
 
-    // Simulate fetching settings data
-    const timer = setTimeout(() => {
-      setFormData({
-        profile: {
-          fullName: "Admin User",
-          email: "admin@company.com",
-          phone: "+1 (555) 123-4567",
-          jobTitle: "Super Admin",
-          department: "Administration",
-          profileImage: "https://i.pravatar.cc/100?img=1",
-          timeZone: "UTC-5",
-        },
-        notifications: {
-          emailAlerts: true,
-          smsAlerts: false,
-          pushNotifications: true,
-          dailyReports: true,
-          visitorCheckins: true,
-          securityAlerts: true,
-        },
-        security: {
-          twoFactorAuth: true,
-          passwordLastChanged: "2024-12-15",
-          sessionTimeout: "30",
-          ipWhitelist: "192.168.1.1, 10.0.0.1",
-        },
-        appearance: {
-          theme: localStorage.getItem("theme") || "system",
-          sidebarExpanded: true,
-          compactMode: false,
-          dateFormat: "MM/DD/YYYY",
-          timeFormat: "12h",
-        },
-        system: {
-          visitorRetention: "90",
-          autoCheckout: "8",
-          defaultDashboard: "overview",
-          systemEmails: "security@company.com, reception@company.com",
-        },
-      });
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Load settings data immediately
+    setFormData({
+      profile: {
+        fullName: "Admin User",
+        email: "admin@company.com",
+        phone: "+1 (555) 123-4567",
+        jobTitle: "Super Admin",
+        department: "Administration",
+        profileImage: "https://i.pravatar.cc/100?img=1",
+        timeZone: "UTC-5",
+      },
+      notifications: {
+        emailAlerts: true,
+        smsAlerts: false,
+        pushNotifications: true,
+        dailyReports: true,
+        visitorCheckins: true,
+        securityAlerts: true,
+      },
+      security: {
+        twoFactorAuth: true,
+        passwordLastChanged: "2024-12-15",
+        sessionTimeout: "30",
+        ipWhitelist: "192.168.1.1, 10.0.0.1",
+      },
+      appearance: {
+        theme: localStorage.getItem("theme") || "system",
+        sidebarExpanded: true,
+        compactMode: false,
+        dateFormat: "MM/DD/YYYY",
+        timeFormat: "12h",
+      },
+      system: {
+        visitorRetention: "90",
+        autoCheckout: "8",
+        defaultDashboard: "overview",
+        systemEmails: "security@company.com, reception@company.com",
+      },
+    });
+    setLoading(false);
   }, []);
 
   const handleInputChange = (section, field, value) => {
@@ -152,7 +148,7 @@ const Settings = () => {
       setTimeout(() => {
         setSaveStatus(null);
       }, 3000);
-    }, 1500);
+    }, 500);
   };
 
   if (loading) {

@@ -29,14 +29,10 @@ const Analytics = () => {
   });
 
   useEffect(() => {
-    // Simulating API call
+    // Load analytics data immediately
     setIsLoading(true);
-    const timer = setTimeout(() => {
-      fetchAnalyticsData(timeRange);
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    fetchAnalyticsData(timeRange);
+    setIsLoading(false);
   }, [timeRange]);
 
   const fetchAnalyticsData = (range) => {
@@ -119,10 +115,8 @@ const Analytics = () => {
 
   const refreshData = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      fetchAnalyticsData(timeRange);
-      setIsLoading(false);
-    }, 800);
+    fetchAnalyticsData(timeRange);
+    setIsLoading(false);
   };
 
   if (isLoading) {

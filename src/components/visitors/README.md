@@ -27,7 +27,7 @@ A comprehensive settings management component for visitors in the Visitor Manage
 
 The component integrates with the following API endpoints:
 
-- `GET /api/auth/me` - Fetch visitor profile data
+- `GET /api/auth/profile` - Fetch visitor profile data
 - `PUT /api/auth/update-profile` - Update visitor profile
 - `POST /api/auth/upload-photo` - Upload profile photo
 - `PUT /api/auth/update-notifications` - Update notification preferences

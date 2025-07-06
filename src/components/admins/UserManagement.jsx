@@ -49,11 +49,9 @@ const UserManagement = () => {
           },
         ];
 
-        // Simulate API delay
-        setTimeout(() => {
-          setUsers(mockUsers);
-          setIsLoading(false);
-        }, 1500);
+        // Load users immediately
+        setUsers(mockUsers);
+        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching users:", error);
         toast.error("Failed to load users");

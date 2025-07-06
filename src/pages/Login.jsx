@@ -13,21 +13,15 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem("access_token");
-    const userRole = localStorage.getItem("user_role");
-
-    if (token) {
-      // Redirect based on role if already logged in
-      redirectBasedOnRole(userRole);
-    }
+    // Remove automatic redirect logic - always show login form
+    // Users should manually log in even if they have tokens
   }, [navigate]);
 
-  // Function to handle role-based redirects
+  // Function to handle role-based redirects (only used after successful login)
   const redirectBasedOnRole = (role) => {
     switch (role) {
       case "admin":
-        navigate("/admin/dashboard");
+        navigate("/admin");
         break;
       case "visitor":
         navigate("/visitor");
@@ -43,22 +37,35 @@ const Login = () => {
     setError("");
 
     try {
+      console.log("Attempting login with email:", email);
+      
+      const requestBody = {
+        email: email.trim(),
+        password: password
+      };
+      
+      console.log("Request body being sent:", requestBody);
+      
       const response = await fetch("https://phawaazvms.onrender.com/api/auth/login", {
         method: "POST",
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: email.trim(),
-          password: password
-        }),
+        body: JSON.stringify(requestBody),
         mode: 'cors',
       });
 
+      console.log("Login response status:", response.status);
+      console.log("Login response headers:", response.headers);
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.log("Login error:", errorData);
+        console.log("Login error response:", errorData);
+        console.log("Full response status:", response.status);
+        console.log("Full response status text:", response.statusText);
+        console.log("Response headers:", Object.fromEntries(response.headers.entries()));
+        
         const errorMessage = errorData.message || errorData.error || "Failed to login. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage);
@@ -67,37 +74,62 @@ const Login = () => {
       }
 
       const responseData = await response.json();
-      console.log("Login successful:", responseData);
+      console.log("Login successful response:", responseData);
 
+      // Handle different response structures
+      let token, user, redirectTo;
+      
       if (responseData.success && responseData.data) {
-        const { token, user } = responseData.data;
-        console.log("Token:", token);
-        console.log("User data:", user);
-        
-        // Store the token
-        if (token) {
-          localStorage.setItem("access_token", token);
-          
-          // Store user data
-          if (user) {
-            console.log("Storing user data:", user);
-            const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-            const role = user.role || "visitor";
-            
-            localStorage.setItem("user_full_name", fullName);
-            localStorage.setItem("user_role", role);
-            localStorage.setItem("user_id", user._id);
-            localStorage.setItem("user_email", user.email);
-            if (user.phone) {
-              localStorage.setItem("user_phone", user.phone);
-            }
-            if (user.photo) {
-              localStorage.setItem("user_photo", user.photo);
-            }
+        // New structure with data wrapper
+        token = responseData.data.token;
+        user = responseData.data.user;
+        redirectTo = responseData.data.redirectTo;
+      } else if (responseData.token) {
+        // Direct structure
+        token = responseData.token;
+        user = responseData.user;
+        redirectTo = responseData.redirectTo;
+      } else {
+        console.error("Unexpected response structure:", responseData);
+        setError("Invalid response structure from server");
+        toast.error("Login failed. Please try again.");
+        setLoading(false);
+        return;
+      }
 
-            toast.success("Login successful!");
-            
-            // Redirect based on role
+      console.log("Extracted token:", token);
+      console.log("Extracted user:", user);
+      console.log("Extracted redirectTo:", redirectTo);
+      
+      // Store the token
+      if (token) {
+        localStorage.setItem("access_token", token);
+        
+        // Store user data
+        if (user) {
+          console.log("Storing user data:", user);
+          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+          const role = user.role || "visitor";
+          
+          localStorage.setItem("user_full_name", fullName);
+          localStorage.setItem("user_role", role);
+          localStorage.setItem("user_id", user._id);
+          localStorage.setItem("user_email", user.email);
+          if (user.phone) {
+            localStorage.setItem("user_phone", user.phone);
+          }
+          if (user.photo) {
+            localStorage.setItem("user_photo", user.photo);
+          }
+
+          toast.success("Login successful!");
+          
+          // Use redirectTo from response if available, otherwise use role-based redirect
+          if (redirectTo) {
+            console.log("Redirecting to:", redirectTo);
+            navigate(redirectTo);
+          } else {
+            // Fallback to role-based redirect
             console.log("User role:", role);
             if (role === "admin") {
               console.log("Redirecting to admin dashboard");
@@ -106,23 +138,19 @@ const Login = () => {
               console.log("Redirecting to visitor dashboard");
               navigate("/visitor");
             }
-          } else {
-            console.error("No user data in response");
-            setError("No user data received");
-            toast.error("Login failed. Please try again.");
           }
         } else {
-          console.error("No token in response");
-          setError("No authentication token received");
+          console.error("No user data in response");
+          setError("No user data received");
           toast.error("Login failed. Please try again.");
         }
       } else {
-        console.error("Invalid response structure:", responseData);
-        setError("Invalid response from server");
+        console.error("No token in response");
+        setError("No authentication token received");
         toast.error("Login failed. Please try again.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError("Network error. Please check your internet connection and try again.");
       toast.error("Login failed. Please try again.");
     } finally {

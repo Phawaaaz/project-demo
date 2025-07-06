@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -38,17 +38,41 @@ const VisitorDashboard = () => {
         throw new Error("No authentication token found");
       }
 
+      // Check token expiration before making request
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const expirationTime = tokenData.exp * 1000;
+        if (Date.now() >= expirationTime) {
+          localStorage.clear();
+          toast.error("Session expired. Please log in again.");
+          navigate("/login");
+          return;
+        }
+      } catch (error) {
+        localStorage.clear();
+        toast.error("Invalid session. Please log in again.");
+        navigate("/login");
+        return;
+      }
+
       const response = await fetch(
         "https://phawaazvms.onrender.com/api/visitors/my-visits",
         {
-          method: "GET",
-          headers: {
+        method: "GET",
+        headers: {
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
-          },
+        },
           mode: "cors",
         }
       );
+
+      if (response.status === 401) {
+        localStorage.clear();
+        toast.error("Session expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to fetch visitor data");
@@ -85,6 +109,10 @@ const VisitorDashboard = () => {
     }
   };
 
+
+
+
+
   useEffect(() => {
     const fetchUserData = async () => {
       // Only fetch data on initial load
@@ -93,8 +121,29 @@ const VisitorDashboard = () => {
       try {
         setIsLoading(true);
         const token = localStorage.getItem("access_token");
+        
+        // Check if token exists and is valid
         if (!token) {
           console.log("No token found, redirecting to login");
+          navigate("/login");
+          return;
+        }
+
+        // Check if token is expired
+        try {
+          const tokenData = JSON.parse(atob(token.split('.')[1]));
+          const expirationTime = tokenData.exp * 1000; // Convert to milliseconds
+          if (Date.now() >= expirationTime) {
+            console.log("Token expired, logging out");
+            localStorage.clear();
+            toast.error("Session expired. Please log in again.");
+            navigate("/login");
+            return;
+          }
+        } catch (error) {
+          console.error("Error parsing token:", error);
+          localStorage.clear();
+          toast.error("Invalid session. Please log in again.");
           navigate("/login");
           return;
         }
@@ -113,7 +162,7 @@ const VisitorDashboard = () => {
 
         // Then fetch fresh data in the background
         const response = await fetch(
-          "https://phawaazvms.onrender.com/api/auth/me",
+          "https://phawaazvms.onrender.com/api/auth/profile",
           {
             method: "GET",
             headers: {
@@ -123,6 +172,14 @@ const VisitorDashboard = () => {
             mode: "cors",
           }
         );
+
+        if (response.status === 401) {
+          console.log("Unauthorized access, token may be expired");
+          localStorage.clear();
+          toast.error("Session expired. Please log in again.");
+          navigate("/login");
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch user data");
@@ -159,7 +216,8 @@ const VisitorDashboard = () => {
         console.error("Error fetching user data:", error);
         // Only show error toast if we don't have cached data
         if (!localStorage.getItem("user_full_name")) {
-          toast.error("Failed to load user data");
+          toast.error("Failed to load user data. Please log in again.");
+          localStorage.clear();
           navigate("/login");
         }
         setIsLoading(false);
@@ -169,6 +227,46 @@ const VisitorDashboard = () => {
 
     fetchUserData();
   }, [navigate, isInitialLoad]);
+
+  // Add token expiration check on component mount and set up periodic checks
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const expirationTime = tokenData.exp * 1000;
+        const currentTime = Date.now();
+        const timeUntilExpiration = expirationTime - currentTime;
+
+        // If token expires in less than 5 minutes, show warning
+        if (timeUntilExpiration < 300000 && timeUntilExpiration > 0) {
+          toast.error("Your session will expire soon. Please save your work.");
+        }
+
+        // If token is expired, logout immediately
+        if (currentTime >= expirationTime) {
+          localStorage.clear();
+          toast.error("Session expired. Please log in again.");
+          navigate("/login");
+        }
+      } catch (error) {
+        console.error("Error checking token expiration:", error);
+        localStorage.clear();
+        toast.error("Invalid session. Please log in again.");
+        navigate("/login");
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+
+    // Set up periodic checks every minute
+    const interval = setInterval(checkTokenExpiration, 60000);
+
+    return () => clearInterval(interval);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -226,7 +324,7 @@ const VisitorDashboard = () => {
         />
       </div>
 
-      {/* Dashboard Grid Layout */}
+      {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Schedule Visit Card */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
@@ -237,9 +335,9 @@ const VisitorDashboard = () => {
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             Schedule your visit and get a QR code for easy check-in.
           </p>
-          <Link to="/visitor/schedule-visit" className="block">
-            <button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 rounded-lg font-medium transition-all duration-200 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 flex items-center justify-center">
-              <PlusCircle size={20} className="mr-2" />
+          <Link to="/visitor/schedule-visit">
+            <button className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 rounded-lg font-semibold transition-all duration-200 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 flex items-center justify-center gap-2">
+              <PlusCircle size={20} />
               Schedule Visit
             </button>
           </Link>
@@ -263,31 +361,31 @@ const VisitorDashboard = () => {
         </h2>
 
         {topVisits.length === 0 && completedVisits.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-              <svg
-                className="w-full h-full"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
+                  <svg
+                    className="w-full h-full"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
             <p className="text-gray-500">No visits scheduled</p>
-            <button
+                <button
               onClick={() => navigate("/visitor/schedule-visit")}
-              className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-            >
-              Schedule a Visit
-            </button>
-          </div>
-        ) : (
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                >
+                  Schedule a Visit
+                </button>
+              </div>
+            ) : (
           <div className="space-y-8">
             {/* Upcoming Visits Table */}
             {topVisits.length > 0 && (
@@ -341,12 +439,12 @@ const VisitorDashboard = () => {
                   data={topVisits}
                   emptyMessage="No upcoming visits"
                 />
-              </div>
+                      </div>
             )}
 
             {/* Completed Visits Table */}
             {completedVisits.length > 0 && (
-              <div>
+                      <div>
                 <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">
                   Completed Visits
                 </h3>
@@ -359,9 +457,9 @@ const VisitorDashboard = () => {
                         <div className="flex items-center">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold mr-2">
                             {row.visitorName?.charAt(0) || "V"}
-                          </div>
+                      </div>
                           {row.visitorName || "Not specified"}
-                        </div>
+                    </div>
                       ),
                     },
                     {
@@ -385,7 +483,7 @@ const VisitorDashboard = () => {
                       render: () => (
                         <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
                           Completed
-                        </span>
+                      </span>
                       ),
                     },
                   ]}
@@ -403,16 +501,16 @@ const VisitorDashboard = () => {
                     </Link>
                   )}
                 />
-              </div>
+                    </div>
             )}
 
-            <div className="mt-4">
-              <Link to="/visitor/visit-summary" className="block">
+          <div className="mt-4">
+                  <Link to="/visitor/visit-summary" className="block">
                 <button className="w-full text-center text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 cursor-pointer">
-                  View all visits →
-                </button>
-              </Link>
-            </div>
+                View all visits →
+              </button>
+            </Link>
+                </div>
           </div>
         )}
       </div>
