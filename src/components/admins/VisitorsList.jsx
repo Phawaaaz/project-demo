@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Search, Filter, Download, UserCheck, User } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
+import Skeleton from "react-loading-skeleton";
 
 // Put this at the top of your component file
 const statusStyles = {
@@ -265,11 +266,39 @@ const VisitorsList = () => {
 
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="text-center p-16 text-gray-500">
-                  Loading visitors...
-                </td>
-              </tr>
+              <>
+                {[...Array(5)].map((_, index) => (
+                  <tr
+                    key={`skeleton-${index}`}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Skeleton circle width={40} height={40} />
+                        <div className="ml-4">
+                          <Skeleton width={100} />
+                          <Skeleton width={150} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton width={120} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton width={100} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton width={150} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton width={80} height={24} />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Skeleton width={80} height={32} />
+                    </td>
+                  </tr>
+                ))}
+              </>
             ) : visitors.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center p-16 text-gray-500">
