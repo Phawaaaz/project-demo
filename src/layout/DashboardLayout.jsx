@@ -115,7 +115,7 @@ const DashboardLayout = ({
         />
 
         {/* Scrollable Main */}
-        <main className="flex-1 overflow-auto p-5 py-6 pb-8 md:p-6 lg:p-8 mt-16 h-[calc(100vh-4rem)]">
+        <main className="flex-1 overflow-auto p-5 md:p-6 lg:p-8 lg:pb-10 mt-16 h-[calc(100vh-4rem)]">
           {children}
         </main>
       </div>
