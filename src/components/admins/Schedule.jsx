@@ -203,15 +203,6 @@ const Schedule = () => {
     (appt) => appt.date.toDateString() === selectedDate.toDateString()
   );
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-600 dark:text-gray-300">Loading schedules...</p>
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="mb-8">
@@ -255,18 +246,28 @@ const Schedule = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {dayNames.map((day) => (
-              <div
-                key={day}
-                className="text-center font-medium text-gray-500 dark:text-gray-400 text-sm"
-              >
-                {day}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {dayNames.map((day) => (
+                  <div
+                    key={day}
+                    className="text-center font-medium text-gray-500 dark:text-gray-400 text-sm"
+                  >
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-7 gap-1">{renderCalendarDays()}</div>
+              <div className="grid grid-cols-7 gap-1">
+                {renderCalendarDays()}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Appointments List */}
@@ -281,7 +282,11 @@ const Schedule = () => {
             </h2>
           </div>
 
-          {filteredAppointments.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredAppointments.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No appointments scheduled for this date.
             </div>
