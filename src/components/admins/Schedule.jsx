@@ -84,7 +84,6 @@ const Schedule = () => {
           email: item.user?.email || "",
           phone: item.user?.phone || "",
           status: item.status,
-          originalData: item, // Keep original data for reference
         }));
         setAppointments(transformedData);
       } else {
@@ -122,15 +121,7 @@ const Schedule = () => {
     setSelectedDate(newDate);
   };
 
-  // Build calendar
-  const daysInMonth = getDaysInMonth(
-    currentDate.getFullYear(),
-    currentDate.getMonth()
-  );
-  const firstDayOfMonth = getFirstDayOfMonth(
-    currentDate.getFullYear(),
-    currentDate.getMonth()
-  );
+  // Calendar configuration
   const monthNames = [
     "January",
     "February",
@@ -147,20 +138,21 @@ const Schedule = () => {
   ];
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Filter appointments for the selected date
-  const filteredAppointments = appointments.filter(
-    (appointment) =>
-      appointment.date.getDate() === selectedDate.getDate() &&
-      appointment.date.getMonth() === selectedDate.getMonth() &&
-      appointment.date.getFullYear() === selectedDate.getFullYear()
-  );
-
+  // Calendar day rendering
   const renderCalendarDays = () => {
     const days = [];
+    const daysInMonth = getDaysInMonth(
+      currentDate.getFullYear(),
+      currentDate.getMonth()
+    );
+    const firstDayOfMonth = getFirstDayOfMonth(
+      currentDate.getFullYear(),
+      currentDate.getMonth()
+    );
 
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<div key={`empty-${i}`} className="h-10 w-10"></div>);
+      days.push(<div key={`empty-${i}`} className="h-10 w-10" />);
     }
 
     // Cells for days in the month
@@ -170,21 +162,10 @@ const Schedule = () => {
         currentDate.getMonth(),
         day
       );
-      const isToday =
-        date.getDate() === new Date().getDate() &&
-        date.getMonth() === new Date().getMonth() &&
-        date.getFullYear() === new Date().getFullYear();
-
-      const isSelected =
-        date.getDate() === selectedDate.getDate() &&
-        date.getMonth() === selectedDate.getMonth() &&
-        date.getFullYear() === selectedDate.getFullYear();
-
+      const isToday = date.toDateString() === new Date().toDateString();
+      const isSelected = date.toDateString() === selectedDate.toDateString();
       const hasAppointments = appointments.some(
-        (appointment) =>
-          appointment.date.getDate() === day &&
-          appointment.date.getMonth() === date.getMonth() &&
-          appointment.date.getFullYear() === date.getFullYear()
+        (appt) => appt.date.toDateString() === date.toDateString()
       );
 
       days.push(
@@ -202,11 +183,11 @@ const Schedule = () => {
           onClick={() => handleDateSelect(day)}
         >
           <span
-            className={`${
+            className={
               isSelected || isToday
                 ? "dark:text-white"
                 : "text-gray-800 dark:text-white"
-            }`}
+            }
           >
             {day}
           </span>
@@ -217,10 +198,15 @@ const Schedule = () => {
     return days;
   };
 
+  // Filter appointments for the selected date
+  const filteredAppointments = appointments.filter(
+    (appt) => appt.date.toDateString() === selectedDate.toDateString()
+  );
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
         <p className="text-gray-600 dark:text-gray-300">Loading schedules...</p>
       </div>
     );
@@ -234,12 +220,12 @@ const Schedule = () => {
           Schedule
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Manage visitor appointments and meetings
+          View visitor appointments and meetings
         </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
+        {/* Calendar Section */}
         <div className="bg-white dark:bg-gray-800 p-5 md:p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 lg:col-span-2">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
@@ -249,6 +235,7 @@ const Schedule = () => {
               <button
                 onClick={handlePrevMonth}
                 className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label="Previous month"
               >
                 <ChevronLeft
                   size={20}
@@ -258,6 +245,7 @@ const Schedule = () => {
               <button
                 onClick={handleNextMonth}
                 className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+                aria-label="Next month"
               >
                 <ChevronRight
                   size={20}
@@ -281,7 +269,7 @@ const Schedule = () => {
           <div className="grid grid-cols-7 gap-1">{renderCalendarDays()}</div>
         </div>
 
-        {/* Selected Date Appointments */}
+        {/* Appointments List */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -309,7 +297,6 @@ const Schedule = () => {
                       <h3 className="font-semibold text-gray-800 dark:text-white">
                         {appointment.visitorName}
                       </h3>
-
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           statusStyles[appointment.status] ||

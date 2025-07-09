@@ -61,16 +61,6 @@ const DashboardLayout = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [handleResize]);
 
-  // Loading state
-  // if (!user) {
-  //   return (
-  //     <div className="flex flex-col items-center justify-center h-screen space-y-4 bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-  //       <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-  //       <p className="text-gray-600 dark:text-gray-300">Please wait...</p>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors duration-200 overflow-hidden">
       {/* Sidebar - Hidden on mobile unless explicitly opened */}
