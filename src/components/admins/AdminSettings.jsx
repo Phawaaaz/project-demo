@@ -209,8 +209,8 @@ const Settings = () => {
   };
 
   return (
-    <div className="h-full dark:bg-gray-900 transition-colors duration-200">
-      <header className="mb-8">
+    <div className="dark:bg-gray-900 transition-colors duration-200">
+      <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
           <SettingsIcon size={28} className="text-blue-500" />
           Admin Settings
@@ -218,7 +218,7 @@ const Settings = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Manage your account settings and preferences
         </p>
-      </header>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div className="flex flex-col md:flex-row">

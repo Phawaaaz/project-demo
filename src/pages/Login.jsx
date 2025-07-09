@@ -37,24 +37,23 @@ const Login = () => {
     setError("");
 
     try {
-      console.log("Attempting login with email:", email);
-      
       const requestBody = {
         email: email.trim(),
-        password: password
+        password: password,
       };
-      
-      console.log("Request body being sent:", requestBody);
-      
-      const response = await fetch("https://phawaazvms.onrender.com/api/auth/login", {
-        method: "POST",
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-        mode: 'cors',
-      });
+
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+          mode: "cors",
+        }
+      );
 
       console.log("Login response status:", response.status);
       console.log("Login response headers:", response.headers);
@@ -64,9 +63,11 @@ const Login = () => {
         console.log("Login error response:", errorData);
         console.log("Full response status:", response.status);
         console.log("Full response status text:", response.statusText);
-        console.log("Response headers:", Object.fromEntries(response.headers.entries()));
-        
-        const errorMessage = errorData.message || errorData.error || "Failed to login. Please try again.";
+
+        const errorMessage =
+          errorData.message ||
+          errorData.error ||
+          "Failed to login. Please try again.";
         setError(errorMessage);
         toast.error(errorMessage);
         setLoading(false);
@@ -78,7 +79,7 @@ const Login = () => {
 
       // Handle different response structures
       let token, user, redirectTo;
-      
+
       if (responseData.success && responseData.data) {
         // New structure with data wrapper
         token = responseData.data.token;
@@ -100,17 +101,19 @@ const Login = () => {
       console.log("Extracted token:", token);
       console.log("Extracted user:", user);
       console.log("Extracted redirectTo:", redirectTo);
-      
+
       // Store the token
       if (token) {
         localStorage.setItem("access_token", token);
-        
+
         // Store user data
         if (user) {
           console.log("Storing user data:", user);
-          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+          const fullName = `${user.firstName || ""} ${
+            user.lastName || ""
+          }`.trim();
           const role = user.role || "visitor";
-          
+
           localStorage.setItem("user_full_name", fullName);
           localStorage.setItem("user_role", role);
           localStorage.setItem("user_id", user._id);
@@ -123,24 +126,20 @@ const Login = () => {
           }
 
           toast.success("Login successful!");
-          
+
           // Use redirectTo from response if available, otherwise use role-based redirect
           if (redirectTo) {
             console.log("Redirecting to:", redirectTo);
             navigate(redirectTo);
           } else {
             // Fallback to role-based redirect
-            console.log("User role:", role);
             if (role === "admin") {
-              console.log("Redirecting to admin dashboard");
               navigate("/admin");
             } else {
-              console.log("Redirecting to visitor dashboard");
               navigate("/visitor");
             }
           }
         } else {
-          console.error("No user data in response");
           setError("No user data received");
           toast.error("Login failed. Please try again.");
         }
@@ -151,7 +150,9 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Network error. Please check your internet connection and try again.");
+      setError(
+        "Network error. Please check your internet connection and try again."
+      );
       toast.error("Login failed. Please try again.");
     } finally {
       setLoading(false);

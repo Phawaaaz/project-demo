@@ -20,7 +20,7 @@ const TodayVisitorsCard = ({ visitors }) => {
   }, [visitors, searchQuery]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
+    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
           Today's Visitors

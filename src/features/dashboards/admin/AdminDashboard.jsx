@@ -72,11 +72,12 @@ const AdminDashboard = () => {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedRange, setSelectedRange] = useState("today");
   const [visitorStats, setVisitorStats] = useState({
-    todayTotal: 0,
+    totalVisitors: 0,
     checkedIn: 0,
-    pending: 0,
-    completed: 0,
+    checkedOut: 0,
+    upcomingVisits: 0,
   });
   const [recentVisitors, setRecentVisitors] = useState([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -86,54 +87,56 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
-        // Set default stats if no token
         setVisitorStats({
-          todayTotal: 0,
+          totalVisitors: 0,
           checkedIn: 0,
-          pending: 0,
-          completed: 0,
+          checkedOut: 0,
+          upcomingVisits: 0,
         });
         return;
       }
 
-      const response = await fetch("https://phawaazvms.onrender.com/api/admin/stats", {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        mode: "cors",
-      });
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/admin/dashboard-stats",
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          mode: "cors",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
+        const rangeData = data.data?.[selectedRange] || {};
+
         setVisitorStats({
-          todayTotal: data.data?.todayTotal || 0,
-          checkedIn: data.data?.checkedIn || 0,
-          pending: data.data?.pending || 0,
-          completed: data.data?.completed || 0,
+          totalVisitors: rangeData.totalVisitors || 0,
+          checkedIn: rangeData.checkedIn || 0,
+          checkedOut: rangeData.checkedOut || 0,
+          upcomingVisits: rangeData.upcomingVisits || 0,
         });
       } else {
-        // Set default stats if API fails
-        console.warn("Failed to fetch visitor stats, using defaults");
+        console.warn("Failed to fetch visitor stats");
         setVisitorStats({
-          todayTotal: 0,
+          totalVisitors: 0,
           checkedIn: 0,
-          pending: 0,
-          completed: 0,
+          checkedOut: 0,
+          upcomingVisits: 0,
         });
       }
     } catch (error) {
       console.error("Error fetching visitor stats:", error);
-      // Set default stats on error
       setVisitorStats({
-        todayTotal: 0,
+        totalVisitors: 0,
         checkedIn: 0,
-        pending: 0,
-        completed: 0,
+        checkedOut: 0,
+        upcomingVisits: 0,
       });
     }
-  }, []);
+  }, [selectedRange]);
 
   // Function to fetch recent visitors
   const fetchRecentVisitors = useCallback(async () => {
@@ -145,18 +148,21 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await fetch("https://phawaazvms.onrender.com/api/admin/recent-visitors", {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        mode: "cors",
-      });
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/admin/visitors",
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          mode: "cors",
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
-        setRecentVisitors(data.data || []);
+        setRecentVisitors(data.data.visitors || []);
       } else {
         // Set empty array if API fails
         console.warn("Failed to fetch recent visitors, using empty array");
@@ -174,7 +180,7 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem("access_token");
-        
+
         // Check if token exists and is valid
         if (!token) {
           console.log("No token found, redirecting to login");
@@ -184,7 +190,7 @@ const AdminDashboard = () => {
 
         // Check if token is expired
         try {
-          const tokenData = JSON.parse(atob(token.split('.')[1]));
+          const tokenData = JSON.parse(atob(token.split(".")[1]));
           const expirationTime = tokenData.exp * 1000; // Convert to milliseconds
           if (Date.now() >= expirationTime) {
             console.log("Token expired, logging out");
@@ -292,7 +298,7 @@ const AdminDashboard = () => {
       if (!token) return;
 
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        const tokenData = JSON.parse(atob(token.split(".")[1]));
         const expirationTime = tokenData.exp * 1000;
         const currentTime = Date.now();
         const timeUntilExpiration = expirationTime - currentTime;
@@ -345,53 +351,69 @@ const AdminDashboard = () => {
 
   // Dashboard content to be rendered when on root path
   const DashboardContent = () => (
-    <>
-      <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white">
-          Welcome, {user?.fullName} 👋
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Here's what's happening today.
-        </p>
-      </header>
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
+              Welcome, {user?.fullName} 👋
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300">
+              Here's what's happening{" "}
+              {selectedRange === "today" ? "today" : "this week"}.
+            </p>
+          </div>
+
+          {/* Select Range Filter */}
+          <div>
+            <select
+              value={selectedRange}
+              onChange={(e) => setSelectedRange(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="today">Today</option>
+              <option value="thisWeek">This Week</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="TODAY'S VISITORS"
-          value={visitorStats.todayTotal}
+          title="TOTAL VISITORS"
+          value={visitorStats.totalVisitors}
           icon={<Users size={20} />}
-          iconColor="blue"
-          description="Total expected today"
+          color="blue"
+          description="Total visitors"
         />
 
         <StatsCard
           title="CHECKED IN"
           value={visitorStats.checkedIn}
           icon={<UserCheck size={20} />}
-          iconColor="green"
-          description="Currently in the building"
+          color="green"
+          description="Checked in"
         />
 
         <StatsCard
-          title="PENDING"
-          value={visitorStats.pending}
-          icon={<CalendarClock size={20} />}
-          iconColor="yellow"
-          description="Expected later today"
-        />
-
-        <StatsCard
-          title="COMPLETED"
-          value={visitorStats.completed}
+          title="CHECKED OUT"
+          value={visitorStats.checkedOut}
           icon={<CheckCircle size={20} />}
-          iconColor="purple"
-          description="Checked out today"
+          color="purple"
+          description="Checked out"
         />
-      </div>
 
-      {/* Today's Visitors - Now with self-contained search functionality */}
-      <TodayVisitorsCard visitors={recentVisitors || []} />
+        {selectedRange === "today" && (
+          <StatsCard
+            title="UPCOMING"
+            value={visitorStats.upcomingVisits}
+            icon={<CalendarClock size={20} />}
+            color="yellow"
+            description="Expected later today"
+          />
+        )}
+      </div>
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700">
@@ -400,26 +422,29 @@ const AdminDashboard = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <Link to="/admin/scan" className="w-full">
-            <button className="w-full flex items-center gap-2 justify-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 rounded-lg text-sm font-medium transition-all duration-200 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50">
+            <button className="w-full flex items-center gap-2 justify-center bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white p-3 rounded-lg text-sm font-medium transition-all duration-200 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50 cursor-pointer">
               <QrCode size={18} />
               Scan QR Code
             </button>
           </Link>
           <Link to="visitors-list" className="w-full">
-            <button className="w-full flex items-center gap-2 justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white p-3 rounded-lg text-sm font-medium transition-all duration-200">
+            <button className="w-full flex items-center gap-2 justify-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-white p-3 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer">
               <Users size={18} />
               Manage Visitors
             </button>
           </Link>
           <Link to="schedule" className="w-full">
-            <button className="w-full flex items-center gap-2 justify-center bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white p-3 rounded-lg text-sm font-medium transition-all duration-200 focus:ring-4 focus:ring-green-300 focus:ring-opacity-50">
+            <button className="w-full flex items-center gap-2 justify-center bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white p-3 rounded-lg text-sm font-medium transition-all duration-200 focus:ring-4 focus:ring-green-300 focus:ring-opacity-50 cursor-pointer">
               <CalendarClock size={18} />
               View Schedule
             </button>
           </Link>
         </div>
       </div>
-    </>
+
+      {/* Today's Visitors - Now with self-contained search functionality */}
+      <TodayVisitorsCard visitors={recentVisitors || []} />
+    </div>
   );
 
   return (
