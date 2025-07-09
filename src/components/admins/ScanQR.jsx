@@ -1,4 +1,4 @@
-import { useState} from "react";
+import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { CheckCircle, AlertTriangle, QrCode } from "lucide-react";
 import toast from "react-hot-toast";
@@ -44,7 +44,7 @@ const ScanQR = () => {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <header className="mb-8">
+      <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
           <QrCode size={28} className="text-blue-500" />
           QR Code Scanner
@@ -52,7 +52,7 @@ const ScanQR = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Scan a visitor's QR code to check them in or view their details.
         </p>
-      </header>
+      </div>
 
       {scanning ? (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">

@@ -95,7 +95,7 @@ const DashboardLayout = ({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="relative flex flex-1 flex-col h-screen overflow-hidden">
         <VisitorHeader
           title={title}
           user={user}
@@ -105,7 +105,7 @@ const DashboardLayout = ({
         />
 
         {/* Scrollable Main */}
-        <main className="flex-1 overflow-auto p-5 md:p-6 lg:p-8 lg:pb-10 mt-16 h-[calc(100vh-4rem)]">
+        <main className="flex-1 overflow-y-auto p-5 md:p-6 lg:p-8 lg:pb-10 mt-16">
           {children}
         </main>
       </div>

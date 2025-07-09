@@ -76,44 +76,6 @@ const VisitorsList = () => {
     setPage(1); // Reset to first page when applying new filters
   };
 
-  // const handleCheckIn = (visitorId) => {
-  //   const updatedVisitors = visitors.map((visitor) => {
-  //     if (visitor.id === visitorId) {
-  //       return {
-  //         ...visitor,
-  //         status: "checked-in",
-  //         checkInTime: new Date().toLocaleTimeString([], {
-  //           hour: "2-digit",
-  //           minute: "2-digit",
-  //         }),
-  //       };
-  //     }
-  //     return visitor;
-  //   });
-
-  //   setVisitors(updatedVisitors);
-  //   toast.success("Visitor checked in successfully");
-  // };
-
-  // const handleCheckOut = (visitorId) => {
-  //   const updatedVisitors = visitors.map((visitor) => {
-  //     if (visitor.id === visitorId) {
-  //       return {
-  //         ...visitor,
-  //         status: "completed",
-  //         checkOutTime: new Date().toLocaleTimeString([], {
-  //           hour: "2-digit",
-  //           minute: "2-digit",
-  //         }),
-  //       };
-  //     }
-  //     return visitor;
-  //   });
-
-  //   setVisitors(updatedVisitors);
-  //   toast.success("Visitor checked out successfully");
-  // };
-
   const exportToCsv = () => {
     const headers = [
       "Name",

@@ -129,9 +129,9 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="h-full">
+    <div>
       {/* Header */}
-      <header className="mb-8">
+      <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
           <UserCog size={28} className="text-blue-500" />
           User Management
@@ -139,7 +139,7 @@ const UserManagement = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Manage user roles and permissions.
         </p>
-      </header>
+      </div>
 
       {/* Main Content */}
       <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">

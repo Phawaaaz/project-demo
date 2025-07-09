@@ -15,6 +15,7 @@ import {
   Cell,
 } from "recharts";
 import { Calendar, Filter, Download, RefreshCw, BarChart3 } from "lucide-react";
+import toast from "react-hot-toast";
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState("week");
@@ -131,8 +132,8 @@ const Analytics = () => {
   }
 
   return (
-    <div className="h-full">
-      <header className="mb-8">
+    <div>
+      <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
           <BarChart3 size={28} className="text-blue-500" />
           Analytics
@@ -140,7 +141,7 @@ const Analytics = () => {
         <p className="text-gray-600 dark:text-gray-300">
           Monitor visitor trends and performance metrics
         </p>
-      </header>
+      </div>
 
       {/* Time Range Selector and Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">

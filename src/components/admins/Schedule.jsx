@@ -213,8 +213,8 @@ const Schedule = () => {
   }
 
   return (
-    <div className="h-full">
-      <header className="mb-8">
+    <div>
+      <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
           <Calendar size={28} className="text-blue-500" />
           Schedule
@@ -222,7 +222,7 @@ const Schedule = () => {
         <p className="text-gray-600 dark:text-gray-300">
           View visitor appointments and meetings
         </p>
-      </header>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar Section */}
