@@ -29,10 +29,32 @@ const ScanQR = () => {
     setError("Error scanning QR code");
   };
 
-  const handleCheckIn = () => {
-    // In a real app, this would send the check-in data to the server
-    toast.success(`${visitorData.fullName} has been checked in successfully!`);
-    resetScan();
+  const handleCheckIn = async () => {
+    if (!visitorData) return;
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          qrCode: scanResult, // Adjust if backend expects a different key
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to check in visitor");
+      }
+
+      const data = await response.json();
+      toast.success(data.message || "Visitor checked in successfully!");
+      resetScan();
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const resetScan = () => {

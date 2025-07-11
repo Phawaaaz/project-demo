@@ -9,123 +9,86 @@ import SaveButton from "../reusable/SaveButton";
 import toast from "react-hot-toast";
 import { SettingsIcon } from "lucide-react";
 
-const Settings = () => {
+const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("profile");
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [saveStatus, setSaveStatus] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [formData, setFormData] = useState({
-    profile: {
-      fullName: "",
-      email: "",
-      phone: "",
-      jobTitle: "",
-      department: "",
-      profileImage: "",
-      timeZone: "UTC+0",
-    },
-    notifications: {
-      emailAlerts: true,
-      smsAlerts: false,
-      pushNotifications: true,
-      dailyReports: true,
-      visitorCheckins: true,
-      securityAlerts: true,
-    },
-    security: {
-      twoFactorAuth: false,
-      passwordLastChanged: "",
-      sessionTimeout: "30",
-      ipWhitelist: "",
-    },
-    appearance: {
-      theme: "light",
-      sidebarExpanded: true,
-      compactMode: false,
-      dateFormat: "MM/DD/YYYY",
-      timeFormat: "12h",
-    },
-    system: {
-      visitorRetention: "90",
-      autoCheckout: "8",
-      defaultDashboard: "overview",
-      systemEmails: "",
-    },
-  });
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch("https://phawaazvms.onrender.com/api/admin/settings", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({}) // Send empty object for fetch
+        });
+        const contentType = response.headers.get("content-type");
+        if (!response.ok) {
+          let errorMsg = "Unknown error";
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMsg = errorData.message || JSON.stringify(errorData);
+          } else {
+            const errorText = await response.text();
+            errorMsg = errorText;
+          }
+          throw new Error(errorMsg);
+        }
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server did not return JSON");
+        }
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || "Failed to fetch settings");
+        setSettings(result.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+
     // Check for user's dark mode preference
     const userPrefersDark =
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches;
     setIsDarkMode(userPrefersDark);
-
-    // Load settings data immediately
-    setFormData({
-      profile: {
-        fullName: "Admin User",
-        email: "admin@company.com",
-        phone: "+1 (555) 123-4567",
-        jobTitle: "Super Admin",
-        department: "Administration",
-        profileImage: "https://i.pravatar.cc/100?img=1",
-        timeZone: "UTC-5",
-      },
-      notifications: {
-        emailAlerts: true,
-        smsAlerts: false,
-        pushNotifications: true,
-        dailyReports: true,
-        visitorCheckins: true,
-        securityAlerts: true,
-      },
-      security: {
-        twoFactorAuth: true,
-        passwordLastChanged: "2024-12-15",
-        sessionTimeout: "30",
-        ipWhitelist: "192.168.1.1, 10.0.0.1",
-      },
-      appearance: {
-        theme: localStorage.getItem("theme") || "system",
-        sidebarExpanded: true,
-        compactMode: false,
-        dateFormat: "MM/DD/YYYY",
-        timeFormat: "12h",
-      },
-      system: {
-        visitorRetention: "90",
-        autoCheckout: "8",
-        defaultDashboard: "overview",
-        systemEmails: "security@company.com, reception@company.com",
-      },
-    });
-    setLoading(false);
   }, []);
 
-  const handleInputChange = (section, field, value) => {
-    setFormData({
-      ...formData,
+  const handleChange = (section, key, value) => {
+    setSettings((prev) => ({
+      ...prev,
       [section]: {
-        ...formData[section],
-        [field]: value,
+        ...prev[section],
+        [key]: value,
       },
-    });
+    }));
   };
 
   const handleCheckboxChange = (section, field) => {
-    setFormData({
-      ...formData,
+    setSettings((prev) => ({
+      ...prev,
       [section]: {
-        ...formData[section],
-        [field]: !formData[section][field],
+        ...prev[section],
+        [field]: !prev[section][field],
       },
-    });
+    }));
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData((prev) => ({
+      setSettings((prev) => ({
         ...prev,
         profile: {
           ...prev.profile,
@@ -135,20 +98,44 @@ const Settings = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSaveStatus("saving");
-
-    // Simulate API call to save settings
-    setTimeout(() => {
-      setSaveStatus("saved");
-      toast.success("Settings saved successfully");
-
-      // Reset the status after 3 seconds
-      setTimeout(() => {
-        setSaveStatus(null);
-      }, 3000);
-    }, 500);
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("https://phawaazvms.onrender.com/api/admin/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(settings),
+      });
+      const contentType = response.headers.get("content-type");
+      if (!response.ok) {
+        let errorMsg = "Unknown error";
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          errorMsg = errorData.message || JSON.stringify(errorData);
+        } else {
+          const errorText = await response.text();
+          errorMsg = errorText;
+        }
+        throw new Error(errorMsg);
+      }
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server did not return JSON");
+      }
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "Failed to update settings");
+      setSuccess("Settings updated successfully");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -168,43 +155,43 @@ const Settings = () => {
       case "profile":
         return (
           <ProfileSettings
-            profileData={formData.profile}
-            handleInputChange={handleInputChange}
+            profileData={settings?.profile || {}}
+            handleInputChange={handleChange}
             handleImageChange={handleImageChange}
           />
         );
       case "notifications":
         return (
           <NotificationSettings
-            notificationsData={formData.notifications}
+            notificationsData={settings?.notificationSettings || {}}
             handleCheckboxChange={handleCheckboxChange}
           />
         );
       case "security":
         return (
           <SecuritySettings
-            securityData={formData.security}
-            handleInputChange={handleInputChange}
+            securityData={settings?.securitySettings || {}}
+            handleInputChange={handleChange}
             handleCheckboxChange={handleCheckboxChange}
           />
         );
       case "appearance":
         return (
           <AppearanceSettings
-            appearanceData={formData.appearance}
-            handleInputChange={handleInputChange}
+            appearanceData={settings?.appearanceSettings || {}}
+            handleInputChange={handleChange}
             handleCheckboxChange={handleCheckboxChange}
           />
         );
       case "system":
         return (
           <SystemSettings
-            systemData={formData.system}
-            handleInputChange={handleInputChange}
+            systemData={settings?.systemSettings || {}}
+            handleInputChange={handleChange}
           />
         );
       default:
-        return <ProfileSettings profileData={formData.profile} />;
+        return <ProfileSettings profileData={settings?.profile || {}} />;
     }
   };
 
@@ -237,11 +224,13 @@ const Settings = () => {
 
           {/* Tab content */}
           <div className="flex-1 p-6">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSave}>
               {renderTabContent()}
 
               {/* Save Button */}
               <SaveButton saveStatus={saveStatus} />
+              {error && <div style={{color: 'red'}}>{error}</div>}
+              {success && <div style={{color: 'green'}}>{success}</div>}
             </form>
           </div>
         </div>
@@ -250,4 +239,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default AdminSettings;
