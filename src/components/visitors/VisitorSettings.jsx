@@ -9,8 +9,8 @@ const VisitorSettings = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
-    phone: "",
+      email: "",
+      phone: "",
   });
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
@@ -143,7 +143,7 @@ const VisitorSettings = () => {
     }
   };
 
-  return (
+    return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
@@ -174,9 +174,9 @@ const VisitorSettings = () => {
                 ) : (
                   <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                     <User className="w-12 h-12 text-gray-400" />
-                  </div>
+          </div>
                 )}
-              </div>
+        </div>
               <label className="cursor-pointer bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center gap-2">
                 <Camera size={18} />
                 <span>Change Photo</span>
@@ -190,7 +190,7 @@ const VisitorSettings = () => {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Max file size: 5MB. Supported formats: JPG, PNG, GIF
               </p>
-            </div>
+      </div>
 
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,7 +269,7 @@ const VisitorSettings = () => {
                 </>
               )}
             </button>
-          </form>
+            </form>
         </div>
       </div>
     </div>

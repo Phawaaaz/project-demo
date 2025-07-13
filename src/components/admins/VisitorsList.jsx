@@ -170,7 +170,7 @@ const VisitorsList = () => {
               size={18}
               className="absolute left-3 top-2.5 text-gray-400"
             />
-          </div>
+        </div>
 
           <button
             onClick={handleApplyFilters}
@@ -196,26 +196,26 @@ const VisitorsList = () => {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-700">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Purpose
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Host
-              </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Purpose
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Host
+                </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
-                Date & Time
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+                  Date & Time
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
           <tbody>
             {loading ? (
@@ -262,90 +262,90 @@ const VisitorsList = () => {
               visitors.map((v) => (
                 <tr
                   key={v._id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                        <User
-                          size={20}
-                          className="text-gray-500 dark:text-gray-300"
-                        />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {v.user?.firstName} {v.user?.lastName}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                          <User
+                            size={20}
+                            className="text-gray-500 dark:text-gray-300"
+                          />
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {v.user?.firstName} {v.user?.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                           {v.user?.email}
                         </div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                     {v.purpose}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                     {v.company}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                     {format(v.visitDate, "yyyy-MM-dd HH:mm")}
-                  </td>
+                    </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
                         statusStyles[v.status] || statusStyles["checked-out"]
                       }`}
                     >
                       {v.status
                         .replace(/-/g, " ")
                         .replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </span>
-                  </td>
+                      </span>
+                    </td>
 
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-between">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center justify-between">
                       {v.status === "pending" ? (
-                        <button
+                          <button
                           // onClick={() => handleCheckIn(v._id)}
                           className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition-colors duration-200 cursor-pointer whitespace-nowrap"
-                        >
-                          Check In
-                        </button>
+                          >
+                            Check In
+                          </button>
                       ) : v.status === "checked-in" ? (
-                        <button
+                          <button
                           // onClick={() => handleCheckOut(v._id)}
                           className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-md text-sm transition-colors duration-200 cursor-pointer whitespace-nowrap"
-                        >
-                          Check Out
-                        </button>
-                      ) : (
-                        <button
+                          >
+                            Check Out
+                          </button>
+                        ) : (
+                          <button
                           className="bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-md text-sm"
-                          disabled
-                        >
-                          Completed
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                            disabled
+                          >
+                            Completed
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
       </div>
 
       {/* Pagination */}
       <div className="flex justify-center items-center gap-4 mb-6 text-black dark:text-white">
-        <button
+          <button
           onClick={() => setPage((p) => p - 1)}
           disabled={page <= 1}
           className="px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-        >
+          >
           ← Prev
-        </button>
+          </button>
 
         <span className="text-sm font-semibold">
           Page <span className="text-blue-600 dark:text-blue-400">{page}</span>{" "}
@@ -353,13 +353,13 @@ const VisitorsList = () => {
           <span className="text-gray-600 dark:text-gray-300">{totalPages}</span>
         </span>
 
-        <button
+            <button
           onClick={() => setPage((p) => p + 1)}
           disabled={page >= totalPages}
           className="px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
         >
           Next →
-        </button>
+            </button>
       </div>
     </div>
   );
