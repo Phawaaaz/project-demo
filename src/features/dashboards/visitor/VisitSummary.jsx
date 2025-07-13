@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Calendar, Clock, Building2, Clipboard, CheckCircle, XCircle, Clock4 } from "lucide-react";
 import toast from "react-hot-toast";
 import LoadingSpinner from "../../../components/reusable/LoadingSpinner";
+import QRCode from "qrcode.react";
+import { X } from "lucide-react";
 
 const VisitSummary = () => {
   const [visits, setVisits] = useState([]);
@@ -9,6 +11,7 @@ const VisitSummary = () => {
   const [filter, setFilter] = useState("all"); // all, upcoming, completed, cancelled
   const [sortBy, setSortBy] = useState("date"); // date, company, status
   const [sortOrder, setSortOrder] = useState("desc"); // asc, desc
+  const [selectedVisit, setSelectedVisit] = useState(null);
 
   const fetchVisits = async () => {
     try {
@@ -205,7 +208,7 @@ const VisitSummary = () => {
                 </tr>
               ) : (
                 sortedVisits.map((visit) => (
-                  <tr key={visit._id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                  <tr key={visit._id} className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer" onClick={() => { console.log('Row clicked:', visit); setSelectedVisit(visit); }}>
                     <td className="px-4 py-4">
                       <div className="flex items-center">
                         <Building2 size={16} className="mr-2 text-gray-500" />
@@ -246,6 +249,30 @@ const VisitSummary = () => {
           </table>
         </div>
       </div>
+      {selectedVisit && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md relative border-4 border-red-500">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              onClick={() => setSelectedVisit(null)}
+            >
+              <X size={24} />
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">Visit QR Code</h2>
+            <div className="flex flex-col items-center gap-4">
+              <QRCode value={selectedVisit._id} size={180} />
+              <div className="w-full space-y-2 mt-4">
+                <div><strong>Company:</strong> {selectedVisit.company}</div>
+                <div><strong>Date:</strong> {formatDate(selectedVisit.visitDate)}</div>
+                <div><strong>Time:</strong> {formatTime(selectedVisit.visitDate)}</div>
+                <div><strong>Duration:</strong> {selectedVisit.expectedDuration} mins</div>
+                <div><strong>Purpose:</strong> {selectedVisit.purpose}</div>
+                <div><strong>Status:</strong> {getStatusBadge(selectedVisit.status)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

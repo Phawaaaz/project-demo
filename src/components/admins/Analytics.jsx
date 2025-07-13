@@ -25,7 +25,7 @@ const Analytics = () => {
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      setIsLoading(true);
+    setIsLoading(true);
       setError(null);
       try {
         const token = localStorage.getItem("access_token");
@@ -44,7 +44,7 @@ const Analytics = () => {
       } catch (err) {
         setError(err.message);
       } finally {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     };
     fetchAnalytics();
@@ -59,8 +59,8 @@ const Analytics = () => {
 
   const refreshData = () => {
     setIsLoading(true);
-    fetchAnalyticsData(timeRange);
-    setIsLoading(false);
+      fetchAnalyticsData(timeRange);
+      setIsLoading(false);
   };
 
   if (isLoading) {
@@ -186,7 +186,7 @@ const Analytics = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+              </div>
 
       {/* Status Breakdown Pie Chart */}
       <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">

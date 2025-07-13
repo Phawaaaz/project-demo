@@ -252,16 +252,16 @@ const Schedule = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {dayNames.map((day) => (
-                  <div
-                    key={day}
-                    className="text-center font-medium text-gray-500 dark:text-gray-400 text-sm"
-                  >
-                    {day}
-                  </div>
-                ))}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {dayNames.map((day) => (
+              <div
+                key={day}
+                className="text-center font-medium text-gray-500 dark:text-gray-400 text-sm"
+              >
+                {day}
               </div>
+            ))}
+          </div>
 
               <div className="grid grid-cols-7 gap-1">
                 {renderCalendarDays()}
@@ -299,9 +299,9 @@ const Schedule = () => {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="space-y-1">
-                      <h3 className="font-semibold text-gray-800 dark:text-white">
-                        {appointment.visitorName}
-                      </h3>
+                    <h3 className="font-semibold text-gray-800 dark:text-white">
+                      {appointment.visitorName}
+                    </h3>
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           statusStyles[appointment.status] ||
