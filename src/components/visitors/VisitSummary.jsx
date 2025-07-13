@@ -9,6 +9,9 @@ import {
   AlertCircle,
   Clock3,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { format } from "date-fns";
+import { getStatusStyle } from "../../utils";
 
 const VisitSummary = () => {
   const [allVisits, setAllVisits] = useState([]);
@@ -16,6 +19,8 @@ const VisitSummary = () => {
   const [completedVisits, setCompletedVisits] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all"); // New state for active tab
+  const [selectedQRCodeData, setSelectedQRCodeData] = useState(null);
+  console.log(allVisits);
 
   // Fetch visitor visits data
   const fetchVisitorVisits = async () => {
@@ -85,22 +90,6 @@ const VisitSummary = () => {
     }
   };
 
-  // Function to get status styling
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "Checked In":
-      case "Completed":
-        return "px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full dark:bg-green-900/30 dark:text-green-400";
-      case "Scheduled":
-      case "Upcoming":
-        return "px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full dark:bg-blue-900/30 dark:text-blue-400";
-      case "Cancelled":
-        return "px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "px-2 py-1 text-xs font-medium text-gray-700 bg-gray-100 rounded-full dark:bg-gray-700 dark:text-gray-300";
-    }
-  };
-
   // Function to determine visit status
   const getVisitStatus = (visit, isCompleted) => {
     if (isCompleted) {
@@ -163,7 +152,7 @@ const VisitSummary = () => {
       render: (row) => (
         <div className="flex items-center">
           <CalendarDays size={16} className="mr-2 text-gray-400" />
-          {row.date}
+          {format(row.visitDate, "yyyy-MM-dd")}
         </div>
       ),
     },
@@ -182,8 +171,36 @@ const VisitSummary = () => {
       accessor: "purpose",
     },
     {
-      header: "Host",
-      accessor: "hostName",
+      header: "QR Code",
+      accessor: "qr-code",
+      render: (row) => {
+        const qrData = JSON.stringify({
+          visitId: row._id,
+          company: row.company,
+          date: row.date,
+          time: row.time,
+          purpose: row.purpose,
+        });
+
+        return (
+          <div
+            onClick={() => setSelectedQRCodeData(qrData)}
+            title="Click to enlarge"
+            className="flex items-center flex-col gap-2"
+          >
+            <QRCodeSVG
+              value={qrData}
+              size={64} // smaller size for table
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="H"
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {row._id?.slice(-6)}
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: "Status",
@@ -192,7 +209,6 @@ const VisitSummary = () => {
         <span
           className={`flex items-center gap-1.5 ${getStatusStyle(row.status)}`}
         >
-          {getStatusIcon(row.status)}
           {row.status}
         </span>
       ),
@@ -200,76 +216,105 @@ const VisitSummary = () => {
   ];
 
   return (
-    <div className="h-full">
-      <header className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
-          <CalendarDays size={28} className="text-blue-500" />
-          Visit Summary
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          View and manage all your scheduled and past visits.
-        </p>
-      </header>
+    <>
+      <div className="h-full">
+        <header className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-gray-800 dark:text-white flex items-center gap-2">
+            <CalendarDays size={28} className="text-blue-500" />
+            Visit Summary
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            View and manage all your scheduled and past visits.
+          </p>
+        </header>
 
-      {/* Custom Tab UI */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`${
-                  activeTab === tab.id
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200`}
-              >
-                {tab.icon}
-                {tab.label}
-                <span
+        {/* Custom Tab UI */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200 dark:border-gray-700">
+            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`${
                     activeTab === tab.id
-                      ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                  } ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium transition-colors duration-200`}
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200`}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </nav>
+                  {tab.icon}
+                  {tab.label}
+                  <span
+                    className={`${
+                      activeTab === tab.id
+                        ? "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
+                        : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                    } ml-2 py-0.5 px-2.5 rounded-full text-xs font-medium transition-colors duration-200`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
+          <ResponsiveTable
+            columns={columns}
+            data={getCurrentData()}
+            emptyMessage={`No ${
+              activeTab === "all" ? "" : activeTab
+            } visits to display. ${
+              activeTab === "upcoming"
+                ? "Scheduled visits will appear here."
+                : activeTab === "completed"
+                ? "Completed visits will appear here."
+                : "Scheduled and past visits will appear here."
+            }`}
+            mobileCardTitle={(row) => row.company || "Visit"}
+            emptyIcon={
+              <Clock size={48} className="text-gray-400 mx-auto mb-4" />
+            }
+          />
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+          <h3 className="text-blue-800 dark:text-blue-200 font-medium mb-2">
+            Tip:
+          </h3>
+          <p className="text-blue-700 dark:text-blue-300 text-sm">
+            You can scan a visitor's QR code to quickly check them in using the
+            Scanner page.
+          </p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
-        <ResponsiveTable
-          columns={columns}
-          data={getCurrentData()}
-          emptyMessage={`No ${
-            activeTab === "all" ? "" : activeTab
-          } visits to display. ${
-            activeTab === "upcoming"
-              ? "Scheduled visits will appear here."
-              : activeTab === "completed"
-              ? "Completed visits will appear here."
-              : "Scheduled and past visits will appear here."
-          }`}
-          mobileCardTitle={(row) => row.company || "Visit"}
-          emptyIcon={<Clock size={48} className="text-gray-400 mx-auto mb-4" />}
-        />
-      </div>
+      {selectedQRCodeData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-xl relative">
+            <button
+              onClick={() => setSelectedQRCodeData(null)}
+              className="absolute top-2 right-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              ✕
+            </button>
 
-      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
-        <h3 className="text-blue-800 dark:text-blue-200 font-medium mb-2">
-          Tip:
-        </h3>
-        <p className="text-blue-700 dark:text-blue-300 text-sm">
-          You can scan a visitor's QR code to quickly check them in using the
-          Scanner page.
-        </p>
-      </div>
-    </div>
+            <h2 className="text-lg font-semibold mb-6 text-center text-gray-800 dark:text-gray-100">
+              Visit QR Code
+            </h2>
+
+            <QRCodeSVG
+              value={selectedQRCodeData}
+              size={300}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="H"
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

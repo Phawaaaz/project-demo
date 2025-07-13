@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { statusStyles } from "../../utils";
+import { useCallback } from "react";
 
 const Schedule = () => {
   // State management
@@ -26,7 +27,7 @@ const Schedule = () => {
     return new Date(year, month, 1).getDay();
   };
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("access_token");
@@ -94,11 +95,11 @@ const Schedule = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate]);
 
   useEffect(() => {
     fetchSchedules();
-  }, [currentDate]);
+  }, [currentDate, fetchSchedules]);
 
   const handlePrevMonth = () => {
     setCurrentDate(

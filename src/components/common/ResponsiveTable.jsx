@@ -44,7 +44,7 @@ const ResponsiveTable = ({
                 <th
                   key={index}
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap"
                 >
                   {column.header}
                 </th>
@@ -52,6 +52,7 @@ const ResponsiveTable = ({
               {rowActions && <th className="px-6 py-3"></th>}
             </tr>
           </thead>
+
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {currentData.map((row, rowIndex) => (
               <tr
