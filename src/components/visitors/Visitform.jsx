@@ -59,7 +59,9 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
         const visitDate = visitDateTime.toISOString();
 
         // Calculate QR code expiry (24 hours from now)
-        const qrCodeExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const qrCodeExpiry = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        ).toISOString();
 
         const visitData = {
           purpose,
@@ -68,19 +70,22 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
           company: newCompany,
           notes,
           status: "scheduled",
-          qrCodeExpiry
+          qrCodeExpiry,
         };
 
-        const response = await fetch("https://phawaazvms.onrender.com/api/visitors", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "Accept": "application/json"
-          },
-          body: JSON.stringify(visitData),
-          mode: "cors"
-        });
+        const response = await fetch(
+          "https://phawaazvms.onrender.com/api/visitors",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+            body: JSON.stringify(visitData),
+            mode: "cors",
+          }
+        );
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -117,7 +122,16 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
         setIsSubmitting(false);
       }
     },
-    [newCompany, newDate, newTime, purpose, expectedDuration, notes, onSubmit, onQRGenerated]
+    [
+      newCompany,
+      newDate,
+      newTime,
+      purpose,
+      expectedDuration,
+      notes,
+      onSubmit,
+      onQRGenerated,
+    ]
   );
 
   // Use effect to update local QR data state when parent passes new data
@@ -153,7 +167,7 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
       // Create a canvas element
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      
+
       // Set canvas size
       canvas.width = 300;
       canvas.height = 300;
@@ -161,7 +175,9 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
       // Create an image from the SVG
       const img = new Image();
       const svgData = new XMLSerializer().serializeToString(svg);
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const svgBlob = new Blob([svgData], {
+        type: "image/svg+xml;charset=utf-8",
+      });
       const url = URL.createObjectURL(svgBlob);
 
       img.onload = () => {
@@ -204,29 +220,34 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
         throw new Error("User email not found");
       }
 
-      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/send-qr", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json"
-        },
-        body: JSON.stringify({
-          visitId: generatedQRData,
-          email: userEmail,
-          visitDetails: {
-            company: newCompany,
-            purpose: purpose,
-            visitDate: newDate,
-            expectedDuration: expectedDuration
-          }
-        }),
-        mode: "cors"
-      });
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/visitors/send-qr",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            visitId: generatedQRData,
+            email: userEmail,
+            visitDetails: {
+              company: newCompany,
+              purpose: purpose,
+              visitDate: newDate,
+              expectedDuration: expectedDuration,
+            },
+          }),
+          mode: "cors",
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to send QR code via email");
+        throw new Error(
+          errorData.message || "Failed to send QR code via email"
+        );
       }
 
       toast.success("QR code sent to your email!");
@@ -243,7 +264,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
           <div>
-            <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="company"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Company Name
             </label>
             <input
@@ -258,7 +282,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
           </div>
 
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="date"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Visit Date
             </label>
             <input
@@ -272,7 +299,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
           </div>
 
           <div>
-            <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="time"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Visit Time
             </label>
             <input
@@ -288,7 +318,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="purpose" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="purpose"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Purpose of Visit
             </label>
             <input
@@ -303,7 +336,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
           </div>
 
           <div>
-            <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="duration"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Expected Duration (minutes)
             </label>
             <input
@@ -320,7 +356,10 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="notes"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Additional Notes
             </label>
             <textarea
@@ -350,9 +389,25 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
         >
           {isSubmitting ? (
             <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Scheduling...
             </>
@@ -392,9 +447,25 @@ const VisitForm = ({ onSubmit, onQRGenerated, initialQRData = "" }) => {
             >
               {isSendingEmail ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Sending...
                 </>
