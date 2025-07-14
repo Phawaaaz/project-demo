@@ -34,7 +34,7 @@ const VisitorDashboard = () => {
   const [selectedQRCodeData, setSelectedQRCodeData] = useState(null);
 
   // Add function to fetch visitor summary
-  const fetchVisitorSummary = async () => {
+  const fetchVisitorSummary = useCallback(async () => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) {
@@ -110,7 +110,7 @@ const VisitorDashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -225,7 +225,7 @@ const VisitorDashboard = () => {
     };
 
     fetchUserData();
-  }, [navigate, isInitialLoad]);
+  }, [navigate, isInitialLoad, fetchVisitorSummary]);
 
   // Add token expiration check on component mount and set up periodic checks
   useEffect(() => {
