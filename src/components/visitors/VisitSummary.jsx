@@ -20,7 +20,6 @@ const VisitSummary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all"); // New state for active tab
   const [selectedQRCodeData, setSelectedQRCodeData] = useState(null);
-  console.log(allVisits);
 
   // Fetch visitor visits data
   const fetchVisitorVisits = async () => {
