@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { useState, useRef, useEffect } from "react";
+import jsQR from "jsqr";
 import { CheckCircle, AlertTriangle, QrCode } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -8,41 +8,80 @@ const ScanQR = () => {
   const [scanResult, setScanResult] = useState(null);
   const [visitorData, setVisitorData] = useState(null);
   const [error, setError] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
-  const handleScan = (data) => {
-    if (data) {
+  // Start the video stream
+  const startVideo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      setError("Unable to access camera");
+    }
+  };
+
+  // Capture image and scan for QR code
+  const captureAndScan = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    if (videoRef.current.readyState !== 4) {
+      setError("Video not ready, please try again");
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    console.log("ImageData:", imageData);
+
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "attemptBoth",
+    });
+    console.log("QR Code:", code);
+
+    if (code) {
       setScanning(false);
-      setScanResult(data);
-
+      setScanResult(code.data);
       try {
-        // Parse the QR code data
-        const parsedData = JSON.parse(data);
+        const parsedData = JSON.parse(code.data);
         setVisitorData(parsedData);
       } catch (err) {
         setError("Invalid QR code format");
       }
+    } else {
+      setError("No QR code found in the image");
     }
-  };
-
-  const handleError = (err) => {
-    console.error(err);
-    setError("Error scanning QR code");
   };
 
   const handleCheckIn = async () => {
     if (!visitorData) return;
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch("https://phawaazvms.onrender.com/api/visitors/scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          qrCode: scanResult, // Adjust if backend expects a different key
-        }),
-      });
+      const response = await fetch(
+        "https://phawaazvms.onrender.com/api/visitors/scan",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            qrCode: scanResult,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -62,7 +101,25 @@ const ScanQR = () => {
     setScanResult(null);
     setVisitorData(null);
     setError(null);
+    startVideo();
   };
+
+  // Start video when component mounts
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    startVideo();
+
+    const videoElement = videoRef.current;
+
+    return () => {
+      if (videoElement && videoElement.srcObject) {
+        const stream = videoElement.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -79,18 +136,24 @@ const ScanQR = () => {
       {scanning ? (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
           <div className="aspect-video relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-            <Scanner
-              onDecode={handleScan}
-              onError={handleError}
-              constraints={{ facingMode: "environment" }}
-            />
+            <video ref={videoRef} className="w-full h-full" />
+            <canvas ref={canvasRef} className="hidden" />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-48 h-48 border-2 border-blue-500 rounded-lg"></div>
             </div>
           </div>
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
-            Position the QR code within the frame to scan
+            Position the QR code within the frame and click Scan
           </p>
+
+          <div className="text-center mt-4">
+            <button
+              onClick={captureAndScan}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors duration-200"
+            >
+              Scan QR Code
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100 dark:border-gray-700 mb-8">
